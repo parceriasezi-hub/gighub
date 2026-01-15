@@ -1,6 +1,6 @@
 
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import * as admin from "firebase-admin"
+// import * as admin from "firebase-admin" - Removed to fix Cloudflare build errors
 
 interface FirebaseConfig {
     apiKey: string
@@ -20,21 +20,27 @@ export class PushNotificationServiceServer {
     /**
      * Initializes Firebase Admin SDK if needed
      */
-    private static initFirebaseAdmin(serviceAccount: any, projectId: string) {
-        // If no apps are initialized, initialize the default one
-        if (admin.apps.length === 0) {
-            try {
+    private static async initFirebaseAdmin(serviceAccount: any, projectId: string) {
+        // Cloudflare/Edge Runtime check
+        if (typeof process !== 'undefined' && process.env.NEXT_RUNTIME === 'edge') {
+            console.warn("⚠️ Firebase Admin skip: Running on Edge Runtime")
+            return null
+        }
+
+        try {
+            const admin = await import("firebase-admin")
+            // If no apps are initialized, initialize the default one
+            if (admin.apps.length === 0) {
                 admin.initializeApp({
                     credential: admin.credential.cert(serviceAccount),
                     projectId: projectId
                 })
                 console.log("✅ Firebase Admin initialized successfully")
-            } catch (error) {
-                console.error("❌ Firebase Admin initialization error:", error)
             }
-        } else {
-            // If apps exists, we check if we need to re-init or reuse (simplified for now: reuse default)
-            // Ideally we might want named apps for multi-tenancy but here we have single tenant
+            return admin
+        } catch (error) {
+            console.error("❌ Firebase Admin initialization error:", error)
+            return null
         }
     }
 
@@ -99,16 +105,18 @@ export class PushNotificationServiceServer {
             }
 
             // Initialize Firebase Admin
-            this.initFirebaseAdmin(serviceAccount, firebaseConfig.projectId)
+            const admin = await this.initFirebaseAdmin(serviceAccount, firebaseConfig.projectId)
+
+            if (!admin) {
+                console.warn("⚠️ Push Notification skip: Firebase Admin not available in this runtime")
+                return { success: 0, failed: tokens.length }
+            }
 
             console.log(`found ${tokens.length} tokens for user ${userId}`)
 
             // 3. Enviar para cada token usando a SDK admin (que usa V1 sob o capô)
             let successCount = 0
             let failedCount = 0
-
-            // Create multicast message (or send individually if desired, multicast is efficient)
-            // Note: sendEachForMulticast is available in newer SDKs
 
             const messages = tokens.map(t => ({
                 token: t.token,
@@ -126,7 +134,7 @@ export class PushNotificationServiceServer {
 
             if (messages.length > 0) {
                 try {
-                    const batchResponse = await admin.messaging().sendEach(messages as admin.messaging.Message[])
+                    const batchResponse = await admin.messaging().sendEach(messages as any)
 
                     successCount = batchResponse.successCount
                     failedCount = batchResponse.failureCount
@@ -134,7 +142,7 @@ export class PushNotificationServiceServer {
                     // Handle failures (cleanup invalid tokens)
                     if (batchResponse.failureCount > 0) {
                         const failedTokens: string[] = []
-                        batchResponse.responses.forEach((resp, idx) => {
+                        batchResponse.responses.forEach((resp: any, idx: number) => {
                             if (!resp.success) {
                                 const error = resp.error
                                 console.error(`FCM error for token ${tokens[idx].id}:`, error?.code, error?.message)
@@ -154,12 +162,6 @@ export class PushNotificationServiceServer {
                                 .in("id", failedTokens)
                             console.log(`Deactivated ${failedTokens.length} invalid tokens`)
                         }
-                    }
-
-                    // Update usage for successful ones
-                    // (Simplification: updating all attempted for now or just success logic implies active)
-                    if (process.env.UPDATE_TOKEN_USAGE === 'true') {
-                        // Optional: timestamp update logic
                     }
 
                 } catch (err) {
