@@ -35,8 +35,10 @@ export async function POST(request: NextRequest) {
 
         // 2. Initialize Gemini
         const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+
         if (!apiKey) {
-            return NextResponse.json({ error: "AI Configuration Error" }, { status: 500 })
+            console.error("CRITICAL: Missing GEMINI API KEY in environment variables")
+            return NextResponse.json({ error: "Configuration Error: Missing AI API Key on Server" }, { status: 500 })
         }
         const genAI = new GoogleGenerativeAI(apiKey)
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
@@ -125,8 +127,14 @@ Respond in JSON:
 
         return NextResponse.json(parsedResponse)
 
-    } catch (error) {
-        console.error("Emergency Chat API Error:", error)
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    } catch (error: any) {
+        console.error("Emergency Chat API Error Full:", error)
+
+        // Return specific error for debugging
+        const errorMessage = error.message || "Unknown Internal Error"
+        return NextResponse.json(
+            { error: `Internal Server Error: ${errorMessage}` },
+            { status: 500 }
+        )
     }
 }

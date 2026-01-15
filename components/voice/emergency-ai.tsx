@@ -271,7 +271,15 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
                 })
             })
 
-            if (!response.ok) throw new Error("API Request Failed")
+            if (!response.ok) {
+                let errorData
+                try {
+                    errorData = await response.json()
+                } catch (e) {
+                    errorData = { error: response.statusText }
+                }
+                throw new Error(errorData.error || errorData.details || `Server Error ${response.status}`)
+            }
 
             const data = await response.json()
 
@@ -287,11 +295,14 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
                 setStep("confirmation")
             }
 
-        } catch (err) {
+        } catch (err: any) {
             console.error("Chat Error:", err)
-            const errorMsg = "Estou com dificuldades de conexão. Por favor, tente novamente ou ligue para o 112."
-            addMessage("assistant", errorMsg)
-            speak(errorMsg)
+            // Show actual error to help debugging
+            const errorMessage = err.message || "Unknown Error"
+            const userFriendlyError = `Erro de Conexão (${errorMessage}). Por favor tente novamente.`
+
+            addMessage("assistant", userFriendlyError)
+            speak("Ocorreu um erro técnico. Por favor verifique a sua conexão.")
         } finally {
             setIsProcessing(false)
         }
