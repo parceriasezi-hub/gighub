@@ -5,6 +5,9 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { NotificationServiceServer } from "@/lib/notifications/notification-service-server"
 import { logActivity } from "@/lib/logger"
 
+export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
     try {
         const cookieStore = await cookies()
