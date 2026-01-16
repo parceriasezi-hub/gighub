@@ -17,8 +17,8 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { DashboardNav } from "./dashboard-nav"
 import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown"
-import { usePathname, useRouter } from "next/navigation"
-import { Menu, User, Settings, LogOut, Circle, Briefcase, Zap } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Menu, User, Settings, LogOut, Circle } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase/client"
@@ -37,7 +37,6 @@ export function DashboardHeader() {
     }
   }, [profile])
 
-  const router = useRouter()
   const pathname = usePathname()
   const isProviderMode = pathname?.startsWith("/dashboard/provider")
   const mode = isProviderMode ? "provider" : "client"
@@ -94,52 +93,8 @@ export function DashboardHeader() {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex flex-col h-full">
-                  <div className="p-4 border-b flex flex-col gap-4">
-                    <div className="flex justify-center">
-                      <Logo href="/dashboard" />
-                    </div>
-
-                    {/* Mobile Client/Provider Toggle */}
-                    {profile?.role === "provider" && (
-                      <div className="flex flex-col gap-2 bg-gray-50/50 p-2 rounded-xl border border-gray-100">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Modo de Visualização</span>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              router.push("/dashboard")
-                              setMobileMenuOpen(false)
-                            }}
-                            className={cn(
-                              "h-14 flex flex-col items-center justify-center gap-1 rounded-xl transition-all border-2",
-                              !isProviderMode
-                                ? "bg-white text-blue-600 border-blue-100 shadow-sm"
-                                : "bg-transparent text-gray-400 border-transparent hover:bg-gray-100"
-                            )}
-                          >
-                            <User className={cn("h-5 w-5", !isProviderMode ? "fill-current" : "")} />
-                            <span className="text-[10px] font-bold leading-none">Painel de Cliente</span>
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              router.push("/dashboard/provider")
-                              setMobileMenuOpen(false)
-                            }}
-                            className={cn(
-                              "h-14 flex flex-col items-center justify-center gap-1 rounded-xl transition-all border-2",
-                              isProviderMode
-                                ? "bg-white text-purple-600 border-purple-100 shadow-sm"
-                                : "bg-transparent text-gray-400 border-transparent hover:bg-gray-100"
-                            )}
-                          >
-                            <Briefcase className={cn("h-5 w-5", isProviderMode ? "fill-current" : "")} />
-                            <span className="text-[10px] font-bold leading-none">Painel de Prestador</span>
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                  <div className="p-4 border-b flex justify-center">
+                    <Logo href="/dashboard" />
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     <DashboardNav />
@@ -180,25 +135,9 @@ export function DashboardHeader() {
                       {displayName}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {/* Role Badge */}
-                      <div className={cn(
-                        "text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border",
-                        isProviderMode
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
-                          : "bg-blue-50 text-blue-700 border-blue-200"
-                      )}>
-                        {isProviderMode ? "Prestador" : "Cliente"}
-                      </div>
-
-                      {/* Subscription Badge (Provider Only) */}
-                      {isProviderMode && profile?.plan && (
-                        <div className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1">
-                          <Zap className="h-3 w-3 fill-current" />
-                          {profile.plan === 'pro' ? 'Pro' : (profile.plan === 'unlimited' ? 'Ilimitado' : 'Básico')}
-                        </div>
-                      )}
-                    </div>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {isProviderMode ? t("providerProfile") : (profile?.role === 'admin' ? t("adminProfile") : (profile?.role === 'provider' ? t("providerProfile") : t("clientProfile")))}
+                    </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
