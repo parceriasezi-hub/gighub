@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Setup Gemini
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "")
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' })
 
 interface AnalysisResult {
   category: string

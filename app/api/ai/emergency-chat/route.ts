@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Configuration Error: Missing AI API Key on Server" }, { status: 500 })
         }
         const genAI = new GoogleGenerativeAI(apiKey)
-        // Use gemini-1.5-flash for speed and reliability
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+        // Use gemini-1.5-flash for speed and reliability, forcing v1 API
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' })
 
         // 3. Construct System Prompt
         const systemPrompt = `

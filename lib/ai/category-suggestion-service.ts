@@ -153,7 +153,7 @@ Rules:
 - Return ONLY the JSON array, no other text`
 
             const genAI = this.getAI()
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' })
 
             const result = await model.generateContent(prompt)
             const response = await result.response
