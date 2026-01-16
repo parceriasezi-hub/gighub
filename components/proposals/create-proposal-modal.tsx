@@ -158,7 +158,7 @@ export function CreateProposalModal({ gig, onProposalCreated, trigger }: CreateP
       if (error) {
         toast({
           title: "Erro",
-          description: "Não foi possível enviar a proposta",
+          description: error.message || "Não foi possível enviar a proposta",
           variant: "destructive",
         })
         return

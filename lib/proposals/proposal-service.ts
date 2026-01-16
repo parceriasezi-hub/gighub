@@ -3,6 +3,8 @@
 import { supabase } from "@/lib/supabase/client"
 import type { Database } from "@/lib/supabase/database.types"
 import { NotificationTriggers } from "@/lib/notifications/notification-triggers"
+import { PlanLimitsService } from "@/lib/monetization/plan-limits-service"
+import { ContactViewService } from "@/lib/monetization/contact-view-service"
 
 type GigResponse = Database["public"]["Tables"]["gig_responses"]["Row"]
 type ProposalTemplate = Database["public"]["Tables"]["proposal_templates"]["Row"]
@@ -37,6 +39,36 @@ export class ProposalService {
   ): Promise<{ data: GigResponse | null; error: any }> {
     try {
       console.log("📝 Criando proposta:", data.proposal_title)
+
+      // 1. Verificar e Consumir Quotas
+      // Verificar quota de propostas
+      const canPropose = await PlanLimitsService.canPerformAction(providerId, "proposal")
+      if (!canPropose.allowed) {
+        return { data: null, error: { message: "Limite de propostas atingido. Faça upgrade do seu plano." } }
+      }
+
+      // Verificar quota de visualização de contacto (necessário para responder)
+      // Nota: Algumas lógicas podem permitir proposta sem ver contacto, mas o requisito diz que contacto deve ficar disponível.
+      const canView = await ContactViewService.canViewContact(providerId, data.gig_id)
+
+      // Se ainda não viu, precisa de crédito
+      if (canView.canView && !canView.reason?.includes("already_viewed")) {
+        // Se não tem crédito para ver, bloqueia? Ou avisa? 
+        // Assumindo bloqueio pois o user quer "contact/respond... so does the rest of data"
+        if (canView.reason === "insufficient_credits") {
+          return { data: null, error: { message: "Créditos insuficientes para desbloquear contacto." } }
+        }
+      }
+
+      // Consumir quota de proposta
+      const consumedProposal = await PlanLimitsService.consumeQuota(providerId, "proposal", data.gig_id, "gigs")
+      if (!consumedProposal.success) {
+        return { data: null, error: { message: consumedProposal.error || "Erro ao processar quota de proposta" } }
+      }
+
+      // Desbloquear Contacto (Consumir quota de visualização se necessário)
+      // Isto garante que o chat e dados ficam disponíveis
+      await ContactViewService.viewContact(providerId, data.gig_id)
 
       const proposalData = {
         gig_id: data.gig_id,

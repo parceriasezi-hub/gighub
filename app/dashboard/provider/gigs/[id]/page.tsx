@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTriangle } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
-import { Loader2, ArrowLeft, MapPin, Clock, Euro, User, Mail, Lock } from "lucide-react"
+import { Loader2, ArrowLeft, MapPin, Clock, Euro, User, Mail, Lock, Phone, CheckCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
@@ -18,6 +18,7 @@ import type { Database } from "@/lib/supabase/database.types"
 import { ContactViewButton } from "@/components/gigs/contact-view-button"
 import { CreateProposalModal } from "@/components/proposals/create-proposal-modal"
 import { ChatInterface } from "@/components/chat/chat-interface"
+import { ContactViewService } from "@/lib/monetization/contact-view-service"
 
 type Gig = Database["public"]["Tables"]["gigs"]["Row"]
 type GigResponse = Database["public"]["Tables"]["gig_responses"]["Row"]
@@ -32,6 +33,7 @@ export default function GigDetailsPage() {
   const [gig, setGig] = useState<Gig | null>(null)
   const [gigResponses, setGigResponses] = useState<GigResponse[]>([])
   const [authorProfile, setAuthorProfile] = useState<any>(null)
+  const [contactDetails, setContactDetails] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [responding, setResponding] = useState(false)
   const [hasResponded, setHasResponded] = useState(false)
@@ -80,6 +82,14 @@ export default function GigDetailsPage() {
         const userResponse = responsesData?.find((r) => r.responder_id === user.id)
         setHasResponded(!!userResponse)
         setShowContactInfo(!!userResponse)
+
+        if (userResponse) {
+          // Tentar buscar detalhes desbloqueados
+          const contactResult = await ContactViewService.viewContact(user.id, gigId)
+          if (contactResult.success) {
+            setContactDetails(contactResult.contactInfo)
+          }
+        }
       }
     } catch (err) {
       console.error("Error:", err)
@@ -137,17 +147,14 @@ export default function GigDetailsPage() {
         return
       }
 
-      // Atualizar contador de respostas do usuário
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          responses_used: profile.responses_used + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
+      // Atualizar contador de respostas e registar visualização via serviço
+      // Isto garante que o contacto fica desbloqueado
+      const viewResult = await ContactViewService.viewContact(user.id, gigId)
 
-      if (updateError) {
-        console.error("Error updating profile:", updateError)
+      if (!viewResult.success) {
+        console.warn("Aviso: Falha ao registar visualização de contacto após resposta", viewResult.error)
+      } else {
+        setContactDetails(viewResult.contactInfo)
       }
 
       // Atualizar estado local
@@ -351,6 +358,50 @@ export default function GigDetailsPage() {
                         <div className="text-sm text-gray-500">Email</div>
                         <div className="font-medium">{user?.email}</div>
                       </div>
+                    </div>
+                  </div>
+                ) : showContactInfo && contactDetails ? (
+                  // MOSTRAR CONTACTO DESBLOQUEADO INLINE
+                  <div className="space-y-4">
+                    <Alert className="bg-green-50 border-green-200">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-800">
+                        Contacto desbloqueado com sucesso!
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-indigo-100 p-2 rounded-full">
+                          <User className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 font-medium">Nome Completo</p>
+                          <p className="font-semibold text-gray-900">{contactDetails.fullName}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-indigo-100 p-2 rounded-full">
+                          <Mail className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 font-medium">Email</p>
+                          <p className="font-semibold text-gray-900">{contactDetails.email}</p>
+                        </div>
+                      </div>
+
+                      {contactDetails.phone && (
+                        <div className="flex items-start space-x-3">
+                          <div className="bg-indigo-100 p-2 rounded-full">
+                            <Phone className="h-5 w-5 text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500 font-medium">Telefone</p>
+                            <p className="font-semibold text-gray-900">{contactDetails.phone}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
