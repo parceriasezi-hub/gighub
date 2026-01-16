@@ -217,9 +217,11 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
             })
     }, [])
 
-    const handleLocate = async () => {
-        setIsLocating(true)
-        setAddressInput("A obter localização...")
+    const handleLocate = async (retryCount = 0) => {
+        if (retryCount === 0) {
+            setIsLocating(true)
+            setAddressInput("A obter localização...")
+        }
 
         try {
             // Check if Geolocation is supported
@@ -260,7 +262,14 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
                     setAddressInput(coordString)
                 }
             } else {
-                console.warn("Google Maps API not loaded, using coordinates")
+                // API not loaded yet?
+                if (retryCount < 5) {
+                    console.warn(`Google Maps API not loaded, retrying (${retryCount + 1}/5)...`)
+                    setTimeout(() => handleLocate(retryCount + 1), 500)
+                    return // Exit and wait for retry
+                }
+
+                console.warn("Google Maps API not loaded after retries, using coordinates")
                 setAddressInput(coordString)
             }
 
@@ -279,7 +288,10 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
                 variant: "destructive"
             })
         } finally {
-            setIsLocating(false)
+            // Only stop loading state if we are done (success or max retries or error)
+            if (typeof window !== "undefined" && window.google?.maps?.Geocoder || retryCount >= 5) {
+                setIsLocating(false)
+            }
         }
     }
 
