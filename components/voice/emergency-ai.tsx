@@ -105,68 +105,13 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
         }
     }, [])
 
-    // Initialize Google Maps Autocomplete (Existing Logic preserved)
+    // Google Maps Autocomplete removed to prevent input blocking issues.
+    // Manual entry is prioritized if Geolocation fails.
+    /*
     useEffect(() => {
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-        if (!isOpen || !apiKey) return
-
-        const initAutocomplete = () => {
-            const input = document.getElementById("emergency-address-input") as HTMLInputElement
-            if (!input || !window.google) return
-
-            const attemptInit = () => {
-                if (window.google?.maps?.places?.Autocomplete) {
-                    const autocomplete = new window.google.maps.places.Autocomplete(input, {
-                        types: ["geocode"],
-                    })
-
-                    autocomplete.addListener("place_changed", () => {
-                        const place = autocomplete.getPlace()
-                        if (place.geometry && place.geometry.location) {
-                            const lat = place.geometry.location.lat()
-                            const lng = place.geometry.location.lng()
-                            const address = place.formatted_address || place.name || ""
-                            setLocation({ lat, lng, address })
-                            setAddressInput(address)
-                        }
-                    })
-                    return true
-                }
-                return false
-            }
-
-            if (!attemptInit()) {
-                const interval = setInterval(() => {
-                    if (attemptInit()) clearInterval(interval)
-                }, 100)
-                setTimeout(() => clearInterval(interval), 5000)
-            }
-        }
-
-        if (window.google) {
-            initAutocomplete()
-        } else {
-            const scriptId = "google-maps-script"
-            if (!document.getElementById(scriptId)) {
-                const script = document.createElement("script")
-                script.id = scriptId
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding&loading=async`
-                script.async = true
-                script.defer = true
-                script.onload = () => initAutocomplete()
-                document.head.appendChild(script)
-            } else {
-                const interval = setInterval(() => {
-                    if (window.google) {
-                        initAutocomplete()
-                        clearInterval(interval)
-                    }
-                }, 100)
-                setTimeout(() => clearInterval(interval), 5000)
-            }
-        }
+        // ... legacy autocomplete code removed ...
     }, [isOpen])
-
+    */
     // Start sequence when opened
     useEffect(() => {
         if (isOpen) {
