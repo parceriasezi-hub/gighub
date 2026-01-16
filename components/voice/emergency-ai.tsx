@@ -220,7 +220,10 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
     const handleLocate = async (retryCount = 0) => {
         if (retryCount === 0) {
             setIsLocating(true)
-            setAddressInput("A obter localização...")
+            // Only show loading text if empty or if it was the initial "Detecting..."
+            if (!addressInput || addressInput === "A detetar endereço...") {
+                setAddressInput("A obter localização...")
+            }
         }
 
         try {
@@ -240,58 +243,48 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
             const { latitude, longitude } = pos.coords
             console.log("📍 Coordinates:", latitude, longitude)
 
-            // Set basic coords first as fallback
+            // Set location state immediately
             setLocation({ lat: latitude, lng: longitude })
-            const coordString = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
 
-            // Try Reverse Geocoding if Google API is available
-            if (typeof window !== "undefined" && window.google?.maps?.Geocoder) {
+            // Direct Google Maps Geocoding API fetch to avoid script loading race conditions
+            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+            if (apiKey) {
                 try {
-                    const geocoder = new window.google.maps.Geocoder()
-                    const response = await geocoder.geocode({ location: { lat: latitude, lng: longitude } })
+                    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+                    const data = await response.json()
 
-                    if (response.results && response.results[0]) {
-                        const address = response.results[0].formatted_address
+                    if (data.status === 'OK' && data.results && data.results[0]) {
+                        const address = data.results[0].formatted_address
                         setAddressInput(address)
                         setLocation({ lat: latitude, lng: longitude, address })
                     } else {
-                        setAddressInput(coordString)
+                        console.warn("Geocoding API returned no results:", data)
+                        if (!addressInput) setAddressInput(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
                     }
-                } catch (geoErr) {
-                    console.error("Geocoding failed:", geoErr)
-                    setAddressInput(coordString)
+                } catch (fetchErr) {
+                    console.error("Geocoding fetch error:", fetchErr)
+                    if (!addressInput) setAddressInput(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
                 }
             } else {
-                // API not loaded yet?
-                if (retryCount < 5) {
-                    console.warn(`Google Maps API not loaded, retrying (${retryCount + 1}/5)...`)
-                    setTimeout(() => handleLocate(retryCount + 1), 500)
-                    return // Exit and wait for retry
-                }
-
-                console.warn("Google Maps API not loaded after retries, using coordinates")
-                setAddressInput(coordString)
+                console.warn("No Google Maps API Key found")
+                if (!addressInput) setAddressInput(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
             }
 
         } catch (err: any) {
             console.error("Locate error:", err)
-
-            let errorMsg = "Não foi possível obter a localização."
-            if (err.code === 1) errorMsg = "Permissão de localização negada."
-            else if (err.code === 2) errorMsg = "Localização indisponível."
-            else if (err.code === 3) errorMsg = "Tempo limite excedido."
-
-            setAddressInput(errorMsg)
+            // Only overwrite if input is empty
+            if (!addressInput) {
+                let errorMsg = "Localização indisponível"
+                if (err.code === 1) errorMsg = "Permissão de localização negada"
+                setAddressInput(errorMsg)
+            }
             toast({
-                title: "Erro de Localização",
-                description: "Verifique se o GPS está ativo e se deu permissão ao browser.",
+                title: "Aviso de Localização",
+                description: "Não foi possível obter a localização precisa. Por favor indique a sua morada.",
                 variant: "destructive"
             })
         } finally {
-            // Only stop loading state if we are done (success or max retries or error)
-            if (typeof window !== "undefined" && window.google?.maps?.Geocoder || retryCount >= 5) {
-                setIsLocating(false)
-            }
+            setIsLocating(false)
         }
     }
 

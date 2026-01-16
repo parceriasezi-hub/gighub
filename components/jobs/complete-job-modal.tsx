@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { JobCompletionService } from "@/lib/jobs/job-completion-service"
 import Image from "next/image"
+import { createClient } from "@/lib/supabase/client"
 
 // Note: In a real app, integrate a file upload service (e.g. Supabase Storage). 
 // For this demo, we might simulate or assume URLs are pasted or simple dummy upload logic.
@@ -43,48 +44,71 @@ export function CompleteJobModal({ gigId, gigTitle, onSuccess }: CompleteJobModa
     const [description, setDescription] = useState("")
     const [attachments, setAttachments] = useState<string[]>([])
 
-    // Handling file upload simulation for speed, or basic URL input
-    const [tempUrl, setTempUrl] = useState("")
+    const [uploading, setUploading] = useState(false)
+    const supabase = createClient()
 
-    const handleSubmit = async () => {
-        if (!user) return
-        if (!description.trim()) {
-            toast({ title: "Erro", description: "Por favor descreva o trabalho realizado.", variant: "destructive" })
-            return
-        }
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return
 
-        setLoading(true)
+        setUploading(true)
+        const files = Array.from(e.target.files)
+        const newAttachments: string[] = []
+        const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 
         try {
-            const result = await JobCompletionService.submitCompletion({
-                gigId,
-                providerId: user.id,
-                description,
-                attachments
-            })
+            for (const file of files) {
+                if (file.size > MAX_SIZE) {
+                    toast({
+                        title: "Ficheiro muito grande",
+                        description: `O ficheiro ${file.name} excede 5MB.`,
+                        variant: "destructive"
+                    })
+                    continue
+                }
 
-            if (result.success) {
-                toast({
-                    title: "Sucesso!",
-                    description: "Trabalho marcado como concluído. Aguardando aprovação do cliente."
-                })
-                setOpen(false)
-                onSuccess()
-            } else {
-                toast({ title: "Erro", description: result.error, variant: "destructive" })
+                const fileExt = file.name.split('.').pop()
+                const fileName = `${user?.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+
+                const { error: uploadError } = await supabase.storage
+                    .from('gig-attachments')
+                    .upload(fileName, file)
+
+                if (uploadError) {
+                    console.error('Upload error:', uploadError)
+                    toast({
+                        title: "Erro no upload",
+                        description: `Falha ao enviar ${file.name}.`,
+                        variant: "destructive"
+                    })
+                    continue
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('gig-attachments')
+                    .getPublicUrl(fileName)
+
+                newAttachments.push(publicUrl)
             }
-        } catch (err) {
-            toast({ title: "Erro", description: "Ocorreu um erro ao enviar.", variant: "destructive" })
+
+            if (newAttachments.length > 0) {
+                setAttachments(prev => [...prev, ...newAttachments])
+                toast({
+                    title: "Upload concluído",
+                    description: `${newAttachments.length} foto(s) adicionada(s).`
+                })
+            }
+        } catch (error) {
+            console.error('Upload process error:', error)
+            toast({ title: "Erro", description: "Ocorreu um erro ao processar as imagens.", variant: "destructive" })
         } finally {
-            setLoading(false)
+            setUploading(false)
+            // Reset input
+            e.target.value = ''
         }
     }
 
-    const addAttachment = () => {
-        if (tempUrl) {
-            setAttachments([...attachments, tempUrl])
-            setTempUrl("")
-        }
+    const removeAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index))
     }
 
     return (
@@ -116,37 +140,56 @@ export function CompleteJobModal({ gigId, gigTitle, onSuccess }: CompleteJobModa
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Fotos / Comprovativos (URLs)</Label>
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="https://..."
-                                value={tempUrl}
-                                onChange={(e) => setTempUrl(e.target.value)}
-                            />
-                            <Button type="button" variant="secondary" onClick={addAttachment}>Adicionar</Button>
-                        </div>
-
-                        {attachments.length > 0 && (
-                            <div className="flex gap-2 flex-wrap mt-2">
-                                {attachments.map((url, idx) => (
-                                    <div key={idx} className="relative group border rounded p-1">
-                                        <div className="h-16 w-16 bg-gray-100 flex items-center justify-center overflow-hidden">
-                                            {url.match(/\.(jpeg|jpg|gif|png)$/) != null ? (
-                                                <img src={url} alt="Proof" className="object-cover h-full w-full" />
-                                            ) : (
-                                                <span className="text-xs text-gray-500">File</span>
-                                            )}
-                                        </div>
-                                        <button
-                                            onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 h-4 w-4 flex items-center justify-center text-[10px]"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </div>
-                                ))}
+                        <Label>Fotos / Comprovativos</Label>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                    id="file-upload"
+                                />
+                                <Label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                                    <Upload className="h-4 w-4" />
+                                    Selecionar Fotos
+                                </Label>
+                                <span className="text-xs text-muted-foreground">
+                                    {uploading ? "A enviar..." : "Máx: 5MB por ficheiro"}
+                                </span>
                             </div>
-                        )}
+
+                            {/* Upload Progress */}
+                            {uploading && (
+                                <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
+                                    <div className="bg-primary h-full animate-progress-indeterminate origin-left" />
+                                </div>
+                            )}
+
+                            {/* Preview Grid */}
+                            {attachments.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                    {attachments.map((url, idx) => (
+                                        <div key={idx} className="relative group aspect-square border rounded-lg overflow-hidden bg-gray-100">
+                                            <Image
+                                                src={url}
+                                                alt={`Proof ${idx + 1}`}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeAttachment(idx)}
+                                                className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white rounded-full p-1 opacity-100 transition-opacity"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <p className="text-[10px] text-gray-400">
                             * Para demonstração, insira URLs de imagens. Em produção, usaríamos upload direto.
                         </p>
