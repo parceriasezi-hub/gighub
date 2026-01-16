@@ -17,7 +17,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { DashboardNav } from "./dashboard-nav"
 import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Menu, User, Settings, LogOut, Circle } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -37,6 +37,7 @@ export function DashboardHeader() {
     }
   }, [profile])
 
+  const router = useRouter()
   const pathname = usePathname()
   const isProviderMode = pathname?.startsWith("/dashboard/provider")
   const mode = isProviderMode ? "provider" : "client"
@@ -93,8 +94,48 @@ export function DashboardHeader() {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex flex-col h-full">
-                  <div className="p-4 border-b flex justify-center">
-                    <Logo href="/dashboard" />
+                  <div className="p-4 border-b flex flex-col gap-4">
+                    <div className="flex justify-center">
+                      <Logo href="/dashboard" />
+                    </div>
+
+                    {/* Mobile Client/Provider Toggle */}
+                    {profile?.role === "provider" && (
+                      <div className="bg-gray-100 p-1 rounded-lg grid grid-cols-2 gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            router.push("/dashboard")
+                            setMobileMenuOpen(false)
+                          }}
+                          className={cn(
+                            "h-7 text-xs font-medium rounded-md transition-all hover:bg-white/50",
+                            !isProviderMode
+                              ? "bg-white text-gray-900 shadow-sm"
+                              : "text-gray-500 hover:text-gray-900"
+                          )}
+                        >
+                          {t("clientProfile")}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            router.push("/dashboard/provider")
+                            setMobileMenuOpen(false)
+                          }}
+                          className={cn(
+                            "h-7 text-xs font-medium rounded-md transition-all hover:bg-white/50",
+                            isProviderMode
+                              ? "bg-white text-gray-900 shadow-sm"
+                              : "text-gray-500 hover:text-gray-900"
+                          )}
+                        >
+                          {t("providerProfile")}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     <DashboardNav />
