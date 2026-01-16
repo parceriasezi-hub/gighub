@@ -181,23 +181,16 @@ export function DashboardHeader() {
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      {/* Role Badge */}
+                      {/* Subscription Badge */}
                       <div className={cn(
-                        "text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border",
-                        isProviderMode
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
-                          : "bg-blue-50 text-blue-700 border-blue-200"
+                        "text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border flex items-center gap-1",
+                        profile?.plan === 'pro' || profile?.plan === 'unlimited'
+                          ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          : "bg-gray-50 text-gray-700 border-gray-200"
                       )}>
-                        {isProviderMode ? "Prestador" : "Cliente"}
+                        {(profile?.plan === 'pro' || profile?.plan === 'unlimited') && <Zap className="h-3 w-3 fill-current" />}
+                        {profile?.plan === 'pro' ? 'Pro' : (profile?.plan === 'unlimited' ? 'Ilimitado' : 'Gratuito')}
                       </div>
-
-                      {/* Subscription Badge (Provider Only) */}
-                      {isProviderMode && profile?.plan && (
-                        <div className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1">
-                          <Zap className="h-3 w-3 fill-current" />
-                          {profile.plan === 'pro' ? 'Pro' : (profile.plan === 'unlimited' ? 'Ilimitado' : 'Básico')}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </DropdownMenuLabel>

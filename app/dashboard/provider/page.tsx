@@ -182,11 +182,27 @@ export default function ProviderDashboard() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold">Painel do Prestador</h1>
           <p className="text-muted-foreground">Gerencie os seus serviços e acompanhe o seu desempenho</p>
         </div>
-        {getProviderStatusBadge()}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Subscription Badge */}
+          <Badge className={cn(
+            "uppercase font-bold text-[10px] px-2 py-1 flex items-center gap-1 border",
+            profile?.plan === 'pro' || profile?.plan === 'unlimited'
+              ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+              : "bg-gray-50 text-gray-700 border-gray-200"
+          )}>
+            {(profile?.plan === 'pro' || profile?.plan === 'unlimited') && <Zap className="h-3 w-3 fill-current" />}
+            {profile?.plan === 'pro' ? 'Pro' : (profile?.plan === 'unlimited' ? 'Ilimitado' : 'Gratuito')}
+          </Badge>
+
+          {/* Status Badge (Keep for internal info but smaller) */}
+          <div className="text-[10px] text-gray-400 font-medium">
+            (Status: {profile?.provider_status === 'approved' ? '✓ Ativo' : '⚠ Pendente'})
+          </div>
+        </div>
       </div>
 
       {profile?.provider_status !== "approved" && (

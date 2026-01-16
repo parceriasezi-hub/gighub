@@ -207,8 +207,13 @@ export default function DashboardPage() {
               {t("emergency")}
             </Button>
           )}
-          <Badge variant={profile?.role === "admin" ? "destructive" : profile?.role === "provider" ? "default" : "secondary"}>
-            {profile?.role === "admin" ? t("roles.admin") : profile?.role === "provider" ? t("roles.provider") : t("roles.client")}
+          <Badge className={cn(
+            "uppercase font-bold text-[10px] px-2 py-1 border",
+            profile?.plan === 'pro' || profile?.plan === 'unlimited'
+              ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+              : "bg-gray-50 text-gray-700 border-gray-200"
+          )}>
+            {profile?.plan === 'pro' ? 'Pro' : (profile?.plan === 'unlimited' ? 'Ilimitado' : 'Gratuito')}
           </Badge>
         </div>
       </div>
