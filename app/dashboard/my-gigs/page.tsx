@@ -199,10 +199,12 @@ export default function MyGigsPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      {t("actions.view")}
-                    </Button>
+                    <Link href={`/dashboard/my-gigs/${gig.id}`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        {t("actions.view")}
+                      </Button>
+                    </Link>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-1" />
                       {t("actions.edit")}

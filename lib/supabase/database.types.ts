@@ -584,6 +584,41 @@ export interface Database {
           created_at?: string
         }
       }
+      job_completions: {
+        Row: {
+          id: string
+          gig_id: string
+          provider_id: string
+          description: string
+          attachments: Json
+          status: "pending" | "approved" | "rejected"
+          created_at: string
+          reviewed_at: string | null
+          rejection_reason: string | null
+        }
+        Insert: {
+          id?: string
+          gig_id: string
+          provider_id: string
+          description: string
+          attachments?: Json
+          status?: "pending" | "approved" | "rejected"
+          created_at?: string
+          reviewed_at?: string | null
+          rejection_reason?: string | null
+        }
+        Update: {
+          id?: string
+          gig_id?: string
+          provider_id?: string
+          description?: string
+          attachments?: Json
+          status?: "pending" | "approved" | "rejected"
+          created_at?: string
+          reviewed_at?: string | null
+          rejection_reason?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never
