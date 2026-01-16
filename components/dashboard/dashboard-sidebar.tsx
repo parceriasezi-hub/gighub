@@ -40,7 +40,7 @@ export function DashboardSidebar() {
         pathname?.includes("/dashboard/provider") ? "provider" : "client"
     )
 
-    const isProvider = profile?.role === "provider"
+    const isProvider = profile?.role === "provider" || profile?.is_provider === true
 
     // Sync viewMode with pathname
     useEffect(() => {

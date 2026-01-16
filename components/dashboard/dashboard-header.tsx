@@ -64,7 +64,7 @@ export function DashboardHeader() {
     }
   }
 
-  const displayName = isProviderMode
+  const displayName = (isProviderMode || profile?.role === "provider" || profile?.is_provider === true)
     ? (profile?.provider_full_name || profile?.full_name || user?.email?.split("@")[0] || t("providerProfile"))
     : (profile?.full_name || user?.email?.split("@")[0] || t("clientProfile"))
 
@@ -100,7 +100,7 @@ export function DashboardHeader() {
                     </div>
 
                     {/* Mobile Client/Provider Toggle */}
-                    {profile?.role === "provider" && (
+                    {(profile?.role === "provider" || profile?.is_provider === true) && (
                       <div className="flex flex-col gap-2 bg-gray-50/50 p-2 rounded-xl border border-gray-100">
                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Modo de Visualização</span>
                         <div className="grid grid-cols-2 gap-2">
