@@ -1,5 +1,7 @@
 "use server"
 
+export const runtime = 'edge'
+
 export async function geocode(params: { lat?: number; lng?: number; address?: string }) {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
