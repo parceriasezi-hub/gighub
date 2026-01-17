@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Users, Search, Edit, Trash2, Plus, Mail, Phone, MapPin, Calendar, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { deleteAdminUser } from "@/app/actions/admin"
 
 interface Profile {
   id: string
@@ -114,13 +115,13 @@ export function UsersManagementEnhanced() {
     }
 
     try {
-      const { error } = await supabase.from("profiles").delete().eq("id", profileId)
+      const { error } = await deleteAdminUser(profileId)
 
       if (error) {
         console.error("❌ Erro ao eliminar perfil:", error)
         toast({
           title: "Erro ao eliminar utilizador",
-          description: error.message,
+          description: error,
           variant: "destructive",
         })
         return
