@@ -10,13 +10,16 @@ export async function geocode(params: { lat?: number; lng?: number; address?: st
 
     try {
         let url = ""
-        if (params.lat && params.lng) {
+        if (params.lat !== undefined && params.lng !== undefined) {
             // Reverse Geocoding
             url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${params.lat},${params.lng}&key=${apiKey}`
+            console.log("📍 Reverse geocoding requested for:", params.lat, params.lng)
         } else if (params.address) {
             // Forward Geocoding
             url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(params.address)}&key=${apiKey}`
+            console.log("📍 Forward geocoding requested for:", params.address)
         } else {
+            console.error("❌ Invalid geocode parameters:", params)
             return { error: "Invalid parameters" }
         }
 
