@@ -165,69 +165,83 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
     const handleLocate = async (retryCount = 0) => {
         if (retryCount === 0) {
             setIsLocating(true)
-            // Only show loading text if empty or if it was the initial "Detecting..."
             if (!addressInput || addressInput === "A detetar endereço...") {
                 setAddressInput("A obter localização...")
             }
         }
 
         try {
-            // Check if Geolocation is supported
             if (!navigator.geolocation) {
-                throw new Error("Geolocalização não suportada pelo browser")
+                throw new Error("Geolocalização não suportada")
             }
 
             const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(
-                    resolve,
-                    (err) => reject(err),
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                )
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                })
             })
 
             const { latitude, longitude } = pos.coords
-            console.log("📍 Coordinates:", latitude, longitude)
+            console.log("📍 GPS Coordinates:", latitude, longitude)
 
-            // Set location state immediately
+            // Initial fallback
             setLocation({ lat: latitude, lng: longitude })
 
-            // Direct Google Maps Geocoding API fetch to avoid script loading race conditions
-            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-            if (apiKey) {
-                try {
-                    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
+            // Use Server Proxy for robust Geocoding
+            try {
+                const response = await fetch(`/api/geocode?lat=${latitude}&lng=${longitude}`)
+                if (response.ok) {
                     const data = await response.json()
-
-                    if (data.status === 'OK' && data.results && data.results[0]) {
-                        const address = data.results[0].formatted_address
-                        setAddressInput(address)
-                        setLocation({ lat: latitude, lng: longitude, address })
-                    } else {
-                        console.warn("Geocoding API returned no results:", data)
-                        if (!addressInput) setAddressInput(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
+                    if (data.address) {
+                        setAddressInput(data.address)
+                        setLocation({ lat: data.lat, lng: data.lng, address: data.address })
                     }
-                } catch (fetchErr) {
-                    console.error("Geocoding fetch error:", fetchErr)
+                } else {
+                    console.warn("Reverse geocoding failed")
                     if (!addressInput) setAddressInput(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
                 }
-            } else {
-                console.warn("No Google Maps API Key found")
+            } catch (err) {
+                console.error("Geocoding API error", err)
                 if (!addressInput) setAddressInput(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
             }
 
         } catch (err: any) {
             console.error("Locate error:", err)
-            // Only overwrite if input is empty
             if (!addressInput) {
                 let errorMsg = "Localização indisponível"
-                if (err.code === 1) errorMsg = "Permissão de localização negada"
+                if (err.code === 1) errorMsg = "Permissão negada"
                 setAddressInput(errorMsg)
             }
             toast({
-                title: "Aviso de Localização",
-                description: "Não foi possível obter a localização precisa. Por favor indique a sua morada.",
+                title: "Localização",
+                description: "Não foi possível usar o GPS. Por favor digite a morada.",
                 variant: "destructive"
             })
+        } finally {
+            setIsLocating(false)
+        }
+    }
+
+    // Forward Geocoding: When user types an address manually
+    const handleManualAddressBlur = async () => {
+        if (!addressInput || addressInput.includes(",")) return // Skip if looks like coords
+
+        setIsLocating(true)
+        try {
+            const response = await fetch(`/api/geocode?address=${encodeURIComponent(addressInput)}`)
+            if (response.ok) {
+                const data = await response.json()
+                if (data.lat && data.lng) {
+                    setLocation({ lat: data.lat, lng: data.lng, address: data.address })
+                    // Optionally update text to full formatted address? Maybe keeping user input is better.
+                    // setAddressInput(data.address) 
+                    console.log("📍 Forward Geocoded:", data)
+                }
+            }
+        } catch (error) {
+            console.error("Forward geocoding error:", error)
         } finally {
             setIsLocating(false)
         }
@@ -476,6 +490,7 @@ export function EmergencyAI({ isOpen, onClose, onSuccess }: EmergencyAIProps) {
                                 placeholder={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? "Escreva a morada..." : "Insira a morada manualmente..."}
                                 value={addressInput}
                                 onChange={(e) => setAddressInput(e.target.value)}
+                                onBlur={handleManualAddressBlur}
                                 className="pl-3 pr-10 h-9 rounded-lg border-red-100 bg-white text-xs text-black"
                                 autoComplete="off" // Prevent browser autocomplete fighting with Google
                             />
