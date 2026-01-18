@@ -407,8 +407,11 @@ export interface Database {
           title: string
           message: string
           type: string
+          user_type: string | null
+          data: Json | null
           read: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
@@ -416,8 +419,11 @@ export interface Database {
           title: string
           message: string
           type: string
+          user_type?: string | null
+          data?: Json | null
           read?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
@@ -425,8 +431,11 @@ export interface Database {
           title?: string
           message?: string
           type?: string
+          user_type?: string | null
+          data?: Json | null
           read?: boolean
           created_at?: string
+          updated_at?: string
         }
       }
       providers: {

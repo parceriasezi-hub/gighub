@@ -150,7 +150,7 @@ export class NotificationServiceServer {
         if (userId) {
             try {
                 const supabase = getSupabaseAdmin()
-                const { error } = await supabase.from("notifications").insert({
+                const { error } = await supabase.from("notifications").insert([{
                     user_id: userId,
                     title,
                     message,
@@ -165,7 +165,7 @@ export class NotificationServiceServer {
                     read: false,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                })
+                }] as any)
 
                 if (error) {
                     console.warn(`⚠️ Failed to create in-app notification DB insert:`, error)
@@ -200,8 +200,8 @@ export class NotificationServiceServer {
                     .eq("id", userId)
                     .single()
 
-                if (profileData?.email) {
-                    email = profileData.email
+                if (profileData && (profileData as any).email) {
+                    email = (profileData as any).email
                     // Also ensure userName is available if missing
                     if (!data.userName) {
                         const { data: nameData } = await supabase
@@ -209,8 +209,8 @@ export class NotificationServiceServer {
                             .select("full_name")
                             .eq("id", userId)
                             .single()
-                        if (nameData?.full_name) {
-                            data.userName = nameData.full_name
+                        if (nameData && (nameData as any).full_name) {
+                            data.userName = (nameData as any).full_name
                         }
                     }
                     console.log(`🔍 Fetched email for user ${userId}: ${email}`)
@@ -285,24 +285,25 @@ export class NotificationServiceServer {
 
             // 2. Send to each admin
             const adminPromises = admins.map(async (admin) => {
+                const adminId = (admin as any).id
                 // Skiping if the admin is the one who triggered the notification
-                if (admin.id === data.userId) {
-                    console.log(`ℹ️ Skipping admin alert for user ${admin.id} as they are the triggerer.`)
+                if (adminId === data.userId) {
+                    console.log(`ℹ️ Skipping admin alert for user ${adminId} as they are the triggerer.`)
                     return
                 }
 
                 // In-app notification
-                const { error: insertError } = await supabase.from("notifications").insert({
-                    user_id: admin.id,
+                const { error: insertError } = await supabase.from("notifications").insert([{
+                    user_id: adminId,
                     title,
                     message,
                     type: "admin_alert",
                     user_type: "admin",
-                    data: { ...data, admin_id: admin.id },
+                    data: { ...data, admin_id: adminId },
                     read: false,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                })
+                }] as any)
 
                 if (insertError) {
                     console.warn(`⚠️ Failed to create admin in-app notification for ${admin.id}:`, insertError)
@@ -314,12 +315,13 @@ export class NotificationServiceServer {
                 )
 
                 // Email notification
-                if (admin.email) {
+                const adminEmail = (admin as any).email
+                if (adminEmail) {
                     sendEmailByTrigger({
-                        to: admin.email,
+                        to: adminEmail,
                         trigger,
                         variables: {
-                            admin_name: admin.full_name || "Administrador",
+                            admin_name: (admin as any).full_name || "Administrador",
                             user_name: data.userName || data.user_name || data.userEmail || "Utilizador",
                             user_email: data.userEmail || data.user_email || "",
                             plan_name: data.planName || data.plan_name || "",
