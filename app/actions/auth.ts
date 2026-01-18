@@ -13,7 +13,7 @@ export async function signUpUser(formData: FormData) {
     }
 
     // 1. Generate the verification link via Admin API
-    const supabase = getSupabaseAdmin()
+    const supabase: any = getSupabaseAdmin()
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
         type: "signup",
         email,
