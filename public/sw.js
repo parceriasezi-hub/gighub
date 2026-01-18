@@ -1,7 +1,7 @@
-const CACHE_NAME = "biskate-v1.0.0"
-const STATIC_CACHE = "biskate-static-v1.0.0"
-const DYNAMIC_CACHE = "biskate-dynamic-v1.0.0"
-const API_CACHE = "biskate-api-v1.0.0"
+const CACHE_NAME = "gighub-v1.0.1"
+const STATIC_CACHE = "gighub-static-v1.0.1"
+const DYNAMIC_CACHE = "gighub-dynamic-v1.0.1"
+const API_CACHE = "gighub-api-v1.0.1"
 
 // Recursos para cache estático
 const STATIC_ASSETS = [
