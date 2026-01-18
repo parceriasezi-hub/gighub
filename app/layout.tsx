@@ -44,6 +44,22 @@ export default async function RootLayout({
             </AuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                      console.log('Unregistering SW:', registration);
+                      registration.unregister();
+                    }
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   )
