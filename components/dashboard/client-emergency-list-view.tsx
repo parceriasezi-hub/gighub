@@ -135,8 +135,8 @@ export function ClientEmergencyListView() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-4xl font-black tracking-tighter italic uppercase text-gray-900">As Minhas Emergências</h2>
-                    <p className="text-muted-foreground font-medium">Faça a gestão dos seus pedidos de socorro e acompanhe em tempo real.</p>
+                    <h2 className="text-3xl font-bold text-gray-900">As Minhas Emergências</h2>
+                    <p className="text-muted-foreground font-medium">Faça a gestão dos seus pedidos de serviço urgentes e acompanhe em tempo real.</p>
                 </div>
                 {activeRequests.length === 0 && (
                     <Button
