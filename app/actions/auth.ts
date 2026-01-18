@@ -24,7 +24,8 @@ export async function signUpUser(formData: FormData) {
             },
             // We use a placeholder and replace it after we have the user ID
             // Hardcode fallback to production if env var is missing or localhost in production
-            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL?.includes('localhost') ? process.env.NEXT_PUBLIC_APP_URL : (process.env.NEXT_PUBLIC_APP_URL || 'https://gighub.pages.dev')}/api/auth/confirm?userId=USER_ID_PLACEHOLDER`
+            // Ensure we use the production URL in production environment
+            redirectTo: `${process.env.NODE_ENV === 'production' ? 'https://gighub.pages.dev' : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')}/api/auth/confirm?userId=USER_ID_PLACEHOLDER`
         },
     })
 
