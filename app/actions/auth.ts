@@ -1,7 +1,5 @@
 "use server"
 
-export const runtime = "edge"
-
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { NotificationServiceServer } from "@/lib/notifications/notification-service-server"
 
