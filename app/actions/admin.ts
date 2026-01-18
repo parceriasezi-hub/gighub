@@ -50,7 +50,7 @@ export async function createAdminUser(formData: {
                 full_name: formData.full_name,
                 role: role,
                 plan: plan,
-                permissions: formData.permissions,
+                permissions: formData.permissions as any,
                 updated_at: new Date().toISOString(),
             })
             .eq("id", authData.user.id)
@@ -105,7 +105,7 @@ export async function updateAdminUser(userId: string, data: {
                 full_name: data.full_name,
                 role: data.role,
                 plan: data.plan,
-                permissions: data.permissions,
+                permissions: data.permissions as any,
                 updated_at: new Date().toISOString(),
             })
             .eq("id", userId)
@@ -153,6 +153,11 @@ export async function updateAdminUser(userId: string, data: {
 export async function deleteAdminUser(userId: string, executorId?: string, userEmailForLog?: string): Promise<{ success: boolean; error?: string }> {
     try {
         console.log(`[DELETE_USER] 🚀 Starting deletion for ${userId} (${userEmailForLog})`)
+
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.error("[DELETE_USER] ❌ Missing Service Role Key");
+            return { success: false, error: "Erro de configuração do servidor (Service Key missing)." };
+        }
 
         const supabase = getSupabaseAdmin()
 
@@ -345,7 +350,7 @@ export async function updatePlatformSettings(settings: {
             const { error: updateError } = await supabase
                 .from("platform_integrations")
                 .update({
-                    config: settings,
+                    config: settings as any,
                     updated_at: new Date().toISOString()
                 })
                 .eq("id", existing.id)
@@ -355,7 +360,7 @@ export async function updatePlatformSettings(settings: {
                 .from("platform_integrations")
                 .insert({
                     service_name: "general_settings",
-                    config: settings,
+                    config: settings as any,
                     is_enabled: true
                 })
             error = insertError
