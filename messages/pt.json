@@ -638,5 +638,108 @@
         "policyLink": "Política de Cookies",
         "reject": "Rejeitar",
         "acceptAll": "Aceitar Tudo"
+    },
+    "Payments": {
+        "title": {
+            "client": "Pagamentos",
+            "provider": "Ganhos"
+        },
+        "subtitle": {
+            "client": "Gerencie os seus pagamentos e transações",
+            "provider": "Gerencie os seus ganhos e transações"
+        },
+        "export": "Exportar Relatório",
+        "stats": {
+            "totalSpent": "Total Gasto",
+            "totalEarned": "Total Ganho",
+            "pending": "Pendente",
+            "netBusiness": "Resultados Líquidos"
+        },
+        "tabs": {
+            "all": "Todas",
+            "earnings": "Ganhos",
+            "refunds": "Reembolsos",
+            "payments": "Pagamentos",
+            "costs": "Custos"
+        },
+        "empty": {
+            "title": "Nenhuma transação encontrada",
+            "description": "Quando tiver transações, elas aparecerão aqui"
+        }
+    },
+    "Billing": {
+        "title": "Faturação e Subscrição",
+        "subtitle": {
+            "provider": "Gerencie os seus ganhos e subscrições.",
+            "client": "Veja o seu histórico financeiro."
+        },
+        "balance": {
+            "available": "Saldo Disponível"
+        },
+        "tabs": {
+            "plans": "Planos e Subscrição",
+            "paymentMethods": "Métodos de Pagamento",
+            "withdrawals": "Métodos de Levantamento"
+        },
+        "paymentMethods": {
+            "title": "Métodos de Pagamento",
+            "description": "Gerencie os seus cartões para upgrades e pagamentos.",
+            "add": "Adicionar Cartão",
+            "default": "Predefinido",
+            "dialog": {
+                "title": "Adicionar Método de Pagamento",
+                "description": "Insira os detalhes do cartão com segurança."
+            },
+            "form": {
+                "name": "Nome do Titular",
+                "number": "Número do Cartão",
+                "expiry": "Validade",
+                "cvc": "CVC"
+            },
+            "empty": {
+                "title": "Ainda sem métodos de pagamento",
+                "description": {
+                    "provider": "Adicione um cartão para fazer pagamentos.",
+                    "client": "Adicione um cartão para fazer pagamentos."
+                },
+                "addFirst": "Adicionar Primeiro Cartão"
+            },
+            "expires": "Expira em"
+        },
+        "withdrawals": {
+            "title": "Métodos de Levantamento",
+            "description": "Gerencie como recebe os seus pagamentos.",
+            "cta": "Levantar Fundos",
+            "modal": {
+                "title": "Levantar Fundos",
+                "description": "Insira o montante que deseja levantar. Saldo disponível: €{amount}",
+                "amountLabel": "Montante (€)",
+                "methodLabel": "Método de Pagamento",
+                "cancel": "Cancelar",
+                "confirm": "Confirmar Levantamento"
+            },
+            "add": "Adicionar Método de Levantamento"
+        },
+        "toasts": {
+            "upgradeSuccess": "Upgrade Concluído! 🎉",
+            "upgradeSuccessDesc": "Agora faz parte do plano {plan}.",
+            "upgradeError": "Erro no Upgrade",
+            "withdrawalRequested": "Levantamento Solicitado",
+            "withdrawalRequestedDesc": "O seu pedido de €{amount} foi submetido.",
+            "error": "Erro"
+        },
+        "plans": {
+            "current": "Plano Atual",
+            "upgrade": "Mudar para {plan}",
+            "processing": "A processar...",
+            "error": "Erro ao carregar planos",
+            "noPlans": "Sem planos disponíveis de momento.",
+            "tryAgain": "Tentar Novamente",
+            "descriptions": {
+                "free": "Perfeito para começar",
+                "pro": "Para profissionais em crescimento",
+                "unlimited": "Máxima visibilidade e ganhos",
+                "default": "Funcionalidades essenciais para o seu negócio"
+            }
+        }
     }
-}

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreditCard, Download, Eye, Euro, Calendar, TrendingUp, TrendingDown, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface Transaction {
     id: string
@@ -32,6 +33,7 @@ interface PaymentsViewProps {
 }
 
 export function PaymentsView({ mode }: PaymentsViewProps) {
+    const t = useTranslations("Payments")
     const { user, profile } = useAuth()
     const [loading, setLoading] = useState(true)
     const [payments, setPayments] = useState<Transaction[]>([])
@@ -146,12 +148,12 @@ export function PaymentsView({ mode }: PaymentsViewProps) {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 capitalize">{mode} Payments</h1>
-                    <p className="text-gray-600 mt-2">Manage your {mode === "client" ? "payments" : "earnings"} and transactions</p>
+                    <h1 className="text-3xl font-bold text-gray-900 capitalize">{mode === 'client' ? t('title.client') : t('title.provider')}</h1>
+                    <p className="text-gray-600 mt-2">{mode === "client" ? t('subtitle.client') : t('subtitle.provider')}</p>
                 </div>
                 <Button variant="outline">
                     <Download className="h-4 w-4 mr-2" />
-                    Export Report
+                    {t('export')}
                 </Button>
             </div>
 
@@ -161,7 +163,7 @@ export function PaymentsView({ mode }: PaymentsViewProps) {
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-600">{mode === 'client' ? 'Total Spent' : 'Total Earned'}</p>
+                                <p className="text-sm font-medium text-gray-600">{mode === 'client' ? t('stats.totalSpent') : t('stats.totalEarned')}</p>
                                 <p className={cn("text-3xl font-bold", mode === 'client' ? 'text-red-600' : 'text-green-600')}>
                                     €{mode === 'client' ? stats.totalSent.toFixed(2) : stats.totalReceived.toFixed(2)}
                                 </p>
@@ -175,7 +177,7 @@ export function PaymentsView({ mode }: PaymentsViewProps) {
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Pending</p>
+                                <p className="text-sm font-medium text-gray-600">{t('stats.pending')}</p>
                                 <p className="text-3xl font-bold text-yellow-600">€{stats.pendingAmount.toFixed(2)}</p>
                             </div>
                             <Calendar className="h-8 w-8 text-yellow-600" />
@@ -189,7 +191,7 @@ export function PaymentsView({ mode }: PaymentsViewProps) {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Net Business</p>
+                                    <p className="text-sm font-medium text-gray-600">{t('stats.netBusiness')}</p>
                                     <p className="text-3xl font-bold text-blue-600">€{stats.thisMonth.toFixed(2)}</p>
                                 </div>
                                 <Euro className="h-8 w-8 text-blue-600" />
@@ -202,9 +204,9 @@ export function PaymentsView({ mode }: PaymentsViewProps) {
             {/* Payments List */}
             <Tabs defaultValue="all" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="all">All ({payments.length})</TabsTrigger>
-                    <TabsTrigger value="received">{mode === 'client' ? 'Refunds' : 'Earnings'} ({getFilteredPayments("credit").length})</TabsTrigger>
-                    <TabsTrigger value="sent">{mode === 'client' ? 'Payments' : 'Costs'} ({getFilteredPayments("debit").length})</TabsTrigger>
+                    <TabsTrigger value="all">{t('tabs.all')} ({payments.length})</TabsTrigger>
+                    <TabsTrigger value="received">{mode === 'client' ? t('tabs.refunds') : t('tabs.earnings')} ({getFilteredPayments("credit").length})</TabsTrigger>
+                    <TabsTrigger value="sent">{mode === 'client' ? t('tabs.payments') : t('tabs.costs')} ({getFilteredPayments("debit").length})</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="all" className="space-y-4">
@@ -228,8 +230,8 @@ export function PaymentsView({ mode }: PaymentsViewProps) {
                 <Card>
                     <CardContent className="p-12 text-center">
                         <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
-                        <p className="text-gray-600">When you have transactions, they will appear here</p>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('empty.title')}</h3>
+                        <p className="text-gray-600">{t('empty.description')}</p>
                     </CardContent>
                 </Card>
             )

@@ -26,6 +26,7 @@ import { Check, CreditCard, AlertCircle, AlertTriangle, Download, ArrowUpRight, 
 import { supabase } from "@/lib/supabase/client"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -64,6 +65,7 @@ interface BillingViewProps {
 }
 
 export function BillingView({ mode }: BillingViewProps) {
+    const t = useTranslations("Billing")
     const { profile, refreshProfile, loading: authLoading } = useAuth()
     const isProviderUser = profile?.role === 'provider'
     const [plans, setPlans] = useState<Plan[]>([])
@@ -148,10 +150,10 @@ export function BillingView({ mode }: BillingViewProps) {
                     name: (p.badge_text || p.plan_tier).charAt(0).toUpperCase() + (p.badge_text || p.plan_tier).slice(1).toLowerCase(),
                     price: Number(p.price) || 0,
                     features,
-                    description: p.plan_tier === 'free' ? "Perfect for getting started" :
-                        p.plan_tier === 'pro' ? "For growing professionals" :
-                            p.plan_tier === 'unlimited' ? "Maximum visibility and earnings" :
-                                "Essential features for your business"
+                    description: p.plan_tier === 'free' ? t('plans.descriptions.free') :
+                        p.plan_tier === 'pro' ? t('plans.descriptions.pro') :
+                            p.plan_tier === 'unlimited' ? t('plans.descriptions.unlimited') :
+                                t('plans.descriptions.default')
                 }
             })
 
@@ -368,7 +370,7 @@ export function BillingView({ mode }: BillingViewProps) {
                 })
             })
 
-            toast({ title: "Upgrade Successful! 🎉", description: `You are now on the ${plan?.name} plan.` })
+            toast({ title: t('toasts.upgradeSuccess'), description: t('toasts.upgradeSuccessDesc', { plan: plan?.name }) })
             setShowUpgradeConfirmation(false)
             fetchTransactions()
             await refreshProfile() // Refresh profile after successful upgrade
@@ -481,11 +483,11 @@ export function BillingView({ mode }: BillingViewProps) {
         <div className="container mx-auto py-8 px-4 max-w-6xl">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Billing & Subscription</h1>
+                    <h1 className="text-3xl font-bold">{t('title')}</h1>
                     <p className="text-muted-foreground">
                         {mode === 'provider'
-                            ? "Manage your earnings and subscriptions."
-                            : "View your financial history."}
+                            ? t('subtitle.provider')
+                            : t('subtitle.client')}
                     </p>
                 </div>
 
@@ -496,7 +498,7 @@ export function BillingView({ mode }: BillingViewProps) {
                 <Card className="bg-primary/5 border-primary/20 min-w-[300px]">
                     <CardContent className="p-4 flex items-center justify-between gap-4">
                         <div className="flex-1">
-                            <p className="text-sm font-medium text-muted-foreground">Saldo Disponível</p>
+                            <p className="text-sm font-medium text-muted-foreground">{t('balance.available')}</p>
                             <h2 className="text-2xl font-bold text-primary">€{balance.toFixed(2)}</h2>
                         </div>
                         <div className="flex gap-2">
@@ -508,9 +510,9 @@ export function BillingView({ mode }: BillingViewProps) {
 
             <Tabs defaultValue={mode === 'provider' ? "plans" : "payment-methods"} className="space-y-8">
                 <TabsList>
-                    {(mode === 'provider' || isProviderUser) && <TabsTrigger value="plans">Plans & Subscription</TabsTrigger>}
-                    <TabsTrigger value="payment-methods">Payment Methods</TabsTrigger>
-                    {(mode === 'provider' || isProviderUser) && <TabsTrigger value="withdrawals">Withdrawal Methods</TabsTrigger>}
+                    {(mode === 'provider' || isProviderUser) && <TabsTrigger value="plans">{t('tabs.plans')}</TabsTrigger>}
+                    <TabsTrigger value="payment-methods">{t('tabs.paymentMethods')}</TabsTrigger>
+                    {(mode === 'provider' || isProviderUser) && <TabsTrigger value="withdrawals">{t('tabs.withdrawals')}</TabsTrigger>}
                 </TabsList>
 
                 {/* Plans Tab (Provider Only) */}
@@ -526,15 +528,15 @@ export function BillingView({ mode }: BillingViewProps) {
                             </div>
                         ) : planError ? (
                             <div className="text-center py-12 text-red-500 border-2 border-dashed border-red-200 rounded-xl bg-red-50">
-                                <p className="font-semibold mb-2">Error loading plans</p>
+                                <p className="font-semibold mb-2">{t('plans.error')}</p>
                                 <p className="text-sm">{planError}</p>
                                 <Button variant="outline" size="sm" className="mt-4" onClick={() => fetchPlans()}>
-                                    Try Again
+                                    {t('plans.tryAgain')}
                                 </Button>
                             </div>
                         ) : plans.length === 0 ? (
                             <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
-                                No plans available at the moment.
+                                {t('plans.noPlans')}
                             </div>
                         ) : (
                             <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8">
@@ -550,7 +552,7 @@ export function BillingView({ mode }: BillingViewProps) {
                                         >
                                             {isCurrent && (
                                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                                                    Current Plan
+                                                    {t('plans.current')}
                                                 </div>
                                             )}
                                             <CardHeader>
@@ -582,10 +584,10 @@ export function BillingView({ mode }: BillingViewProps) {
                                                     {currentPlanId === plan.id ? (
                                                         <>
                                                             <Check className="mr-2 h-4 w-4" />
-                                                            Current Plan
+                                                            {t('plans.current')}
                                                         </>
                                                     ) : (
-                                                        upgrading === plan.id ? "Processing..." : `Upgrade to ${plan.name}`
+                                                        upgrading === plan.id ? t('plans.processing') : t('plans.upgrade', { plan: plan.name })
                                                     )}
                                                 </Button>
                                             </CardFooter>
@@ -603,12 +605,12 @@ export function BillingView({ mode }: BillingViewProps) {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 text-left">
                             <div className="flex-1">
-                                <CardTitle>Payment Methods</CardTitle>
-                                <CardDescription>Manage your cards for plan upgrades and other payments.</CardDescription>
+                                <CardTitle>{t('paymentMethods.title')}</CardTitle>
+                                <CardDescription>{t('paymentMethods.description')}</CardDescription>
                             </div>
                             <Button onClick={() => setIsAddPaymentOpen(true)} size="sm">
                                 <CreditCard className="mr-2 h-4 w-4" />
-                                Add Card
+                                {t('paymentMethods.add')}
                             </Button>
                         </CardHeader>
                         <CardContent>
@@ -621,9 +623,9 @@ export function BillingView({ mode }: BillingViewProps) {
                                     <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                         <CreditCard className="h-6 w-6 text-gray-400" />
                                     </div>
-                                    <h3 className="text-lg font-medium">No payment methods yet</h3>
-                                    <p className="text-muted-foreground mb-6">Add a card to start {mode === 'provider' ? 'upgrading to paid plans' : 'making payments'}.</p>
-                                    <Button onClick={() => setIsAddPaymentOpen(true)} variant="outline">Add First Card</Button>
+                                    <h3 className="text-lg font-medium">{t('paymentMethods.empty.title')}</h3>
+                                    <p className="text-muted-foreground mb-6">{mode === 'provider' ? t('paymentMethods.empty.description.provider') : t('paymentMethods.empty.description.client')}</p>
+                                    <Button onClick={() => setIsAddPaymentOpen(true)} variant="outline">{t('paymentMethods.empty.addFirst')}</Button>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -636,9 +638,9 @@ export function BillingView({ mode }: BillingViewProps) {
                                                 <div className="text-left">
                                                     <p className="font-medium">
                                                         {pm.brand ? pm.brand.toUpperCase() : "CARD"} •••• {pm.last4}
-                                                        {pm.is_default && <Badge variant="secondary" className="ml-2">Default</Badge>}
+                                                        {pm.is_default && <Badge variant="secondary" className="ml-2">{t('paymentMethods.default')}</Badge>}
                                                     </p>
-                                                    <p className="text-sm text-muted-foreground">Expires {pm.expiry_date}</p>
+                                                    <p className="text-sm text-muted-foreground">{t('paymentMethods.expires')} {pm.expiry_date}</p>
                                                 </div>
                                             </div>
                                             <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">Remove</Button>
@@ -659,25 +661,25 @@ export function BillingView({ mode }: BillingViewProps) {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
-                                    <CardTitle>Withdrawal Methods</CardTitle>
-                                    <CardDescription>Manage how you get paid.</CardDescription>
+                                    <CardTitle>{t('withdrawals.title')}</CardTitle>
+                                    <CardDescription>{t('withdrawals.description')}</CardDescription>
                                 </div>
                                 <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
                                     <DialogTrigger asChild>
                                         <Button disabled={balance <= 0}>
-                                            <ArrowUpRight className="mr-2 h-4 w-4" /> Withdraw Funds
+                                            <ArrowUpRight className="mr-2 h-4 w-4" /> {t('withdrawals.cta')}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogHeader>
-                                            <DialogTitle>Withdraw Funds</DialogTitle>
+                                            <DialogTitle>{t('withdrawals.modal.title')}</DialogTitle>
                                             <DialogDescription>
-                                                Insira o montante que deseja levantar. Saldo disponível: €{balance.toFixed(2)}
+                                                {t('withdrawals.modal.description', { amount: balance.toFixed(2) })}
                                             </DialogDescription>
                                         </DialogHeader>
                                         <div className="space-y-4 py-4 text-left">
                                             <div className="space-y-2">
-                                                <Label htmlFor="amount">Amount (€)</Label>
+                                                <Label htmlFor="amount">{t('withdrawals.modal.amountLabel')}</Label>
                                                 <Input
                                                     id="amount"
                                                     type="number"
@@ -688,7 +690,7 @@ export function BillingView({ mode }: BillingViewProps) {
                                                 />
                                             </div>
                                             <div className="space-y-2 text-left">
-                                                <Label>Payout Method</Label>
+                                                <Label>{t('withdrawals.modal.methodLabel')}</Label>
                                                 <div className="flex items-center space-x-2 border p-3 rounded-md bg-muted/50">
                                                     <Landmark className="h-5 w-5 text-gray-500" />
                                                     <div className="flex-1 text-left">
@@ -699,10 +701,10 @@ export function BillingView({ mode }: BillingViewProps) {
                                             </div>
                                         </div>
                                         <DialogFooter>
-                                            <Button variant="outline" onClick={() => setIsWithdrawOpen(false)}>Cancel</Button>
+                                            <Button variant="outline" onClick={() => setIsWithdrawOpen(false)}>{t('withdrawals.modal.cancel')}</Button>
                                             <Button onClick={handleWithdrawal} disabled={withdrawing}>
                                                 {withdrawing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                Confirm Withdrawal
+                                                {t('withdrawals.modal.confirm')}
                                             </Button>
                                         </DialogFooter>
                                     </DialogContent>
@@ -734,14 +736,14 @@ export function BillingView({ mode }: BillingViewProps) {
             <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Add Payment Method</DialogTitle>
+                        <DialogTitle>{t('paymentMethods.dialog.title')}</DialogTitle>
                         <DialogDescription>
-                            Enter your card details securely. In a production environment, this would use Stripe or another secure provider.
+                            {t('paymentMethods.dialog.description')}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="name">Cardholder Name</Label>
+                            <Label htmlFor="name">{t('paymentMethods.form.name')}</Label>
                             <Input
                                 id="name"
                                 value={newCard.name}
@@ -750,7 +752,7 @@ export function BillingView({ mode }: BillingViewProps) {
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="number">Card Number</Label>
+                            <Label htmlFor="number">{t('paymentMethods.form.number')}</Label>
                             <Input
                                 id="number"
                                 value={newCard.number}
@@ -761,7 +763,7 @@ export function BillingView({ mode }: BillingViewProps) {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="expiry">Expiry Date</Label>
+                                <Label htmlFor="expiry">{t('paymentMethods.form.expiry')}</Label>
                                 <Input
                                     id="expiry"
                                     value={newCard.expiry}
@@ -771,7 +773,7 @@ export function BillingView({ mode }: BillingViewProps) {
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="cvc">CVC</Label>
+                                <Label htmlFor="cvc">{t('paymentMethods.form.cvc')}</Label>
                                 <Input
                                     id="cvc"
                                     type="password"
