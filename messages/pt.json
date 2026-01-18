@@ -443,7 +443,8 @@
         "error": {
             "title": "Erro",
             "failedStatus": "Falha ao atualizar o estado"
-        }
+        },
+        "becomeProvider": "Tornar-se Prestador"
     },
     "Header": {
         "onlineStatus": "Estado Online",
