@@ -249,6 +249,10 @@ export function UsersManagement() {
       // Pass executor params
       const result = await deleteAdminUser(userId, currentUser?.id, userEmail)
 
+      if (!result) {
+        throw new Error("Não foi obtida resposta do servidor.")
+      }
+
       if (result.error) {
         console.error("❌ Admin: Error deleting user:", result.error)
         toast({
