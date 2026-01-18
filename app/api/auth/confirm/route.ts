@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 export const runtime = "edge"
 export const dynamic = "force-dynamic"
-import { supabaseAdmin } from "@/lib/supabase/admin"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { NotificationServiceServer } from "@/lib/notifications/notification-service-server"
 
 export async function GET(request: NextRequest) {
@@ -16,8 +16,10 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+        const supabase = getSupabaseAdmin()
+
         // 1. Verificar se o utilizador está realmente confirmado no Auth do Supabase
-        const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId)
+        const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId)
 
         if (userError || !user) {
             console.error("❌ Auth Callback: Utilizador não encontrado:", userError?.message)
@@ -31,14 +33,14 @@ export async function GET(request: NextRequest) {
         }
 
         // 2. Marcar como verificado no perfil
-        await supabaseAdmin
+        await supabase
             .from("profiles")
             .update({ email_verified: true })
             .eq("id", userId)
 
         // 3. Disparar a notificação de Bem-vindo (e alerta para o admin)
         // Buscamos o nome do perfil
-        const { data: profile } = await supabaseAdmin
+        const { data: profile } = await supabase
             .from("profiles")
             .select("full_name")
             .eq("id", userId)

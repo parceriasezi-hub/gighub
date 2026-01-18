@@ -224,9 +224,14 @@ export class NotificationServiceServer {
 
         if (email) {
             try {
+                // Map the trigger code to the actual database slug for email templates
+                let emailTemplateSlug = trigger
+                if (trigger === "welcome_email") emailTemplateSlug = "email-verified"
+                if (trigger === "user_registered") emailTemplateSlug = "user-registered"
+
                 const result = await sendEmailByTrigger({
                     to: email,
-                    trigger,
+                    trigger: emailTemplateSlug,
                     variables: {
                         user_name: data.userName || data.user_name || "Utilizador",
                         user_email: email,

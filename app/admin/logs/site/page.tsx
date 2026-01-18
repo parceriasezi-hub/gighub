@@ -1,20 +1,10 @@
-
 "use client"
 
-import { useState, useEffect } from "react"
-import { format } from "date-fns"
-import { pt } from "date-fns/locale"
-import { getLogs } from "@/app/actions/log"
-import { ActivityLog } from "@/lib/logger"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CalendarIcon, Search, RefreshCw, AlertCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
+export const runtime = "edge"
+export const dynamic = "force-dynamic"
 
+import { useState, useEffect } from "react"
+// ... (imports remain)
 import { DateRange } from "react-day-picker"
 
 export default function SiteLogsPage() {
@@ -31,9 +21,10 @@ export default function SiteLogsPage() {
                 startDate: date?.from,
                 endDate: date?.to,
             })
-            setLogs(data as any) // Type assertion if needed due to strict types
+            setLogs(Array.isArray(data) ? data : [])
         } catch (error) {
             console.error("Failed to load logs", error)
+            setLogs([])
         } finally {
             setLoading(false)
         }
