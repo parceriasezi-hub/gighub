@@ -631,5 +631,12 @@
                 }
             }
         }
+    },
+    "CookieConsent": {
+        "title": "Valorizamos a sua privacidade",
+        "description": "Utilizamos cookies para melhorar a sua experiência de navegação, servir anúncios ou conteúdo personalizado e analisar o nosso tráfego. Ao clicar em 'Aceitar Tudo', consente o uso de cookies",
+        "policyLink": "Política de Cookies",
+        "reject": "Rejeitar",
+        "acceptAll": "Aceitar Tudo"
     }
 }

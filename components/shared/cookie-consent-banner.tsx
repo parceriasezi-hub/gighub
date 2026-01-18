@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Cookie } from "lucide-react"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 
 export function CookieConsentBanner() {
     const [showBanner, setShowBanner] = useState(false)
+    const t = useTranslations("CookieConsent")
 
     useEffect(() => {
         // Check if user has already accepted/declined
@@ -42,20 +44,19 @@ export function CookieConsentBanner() {
                     </div>
 
                     <div className="flex-1 space-y-2 mb-4 md:mb-0">
-                        <h3 className="font-semibold text-lg text-gray-900">We value your privacy</h3>
+                        <h3 className="font-semibold text-lg text-gray-900">{t("title")}</h3>
                         <p className="text-gray-600 text-sm leading-relaxed">
-                            We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic.
-                            By clicking "Accept All", you consent to our use of cookies.
-                            Read our <Link href="/legal/cookies" className="text-indigo-600 hover:underline font-medium">Cookie Policy</Link>.
+                            {t("description")}{" "}
+                            <Link href="/legal/cookies" className="text-indigo-600 hover:underline font-medium">{t("policyLink")}</Link>.
                         </p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3 min-w-fit">
                         <Button variant="outline" onClick={handleDecline} className="w-full sm:w-auto">
-                            Reject
+                            {t("reject")}
                         </Button>
                         <Button onClick={handleAccept} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700">
-                            Accept All
+                            {t("acceptAll")}
                         </Button>
                     </div>
                 </div>
