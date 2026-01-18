@@ -306,12 +306,12 @@ export class NotificationServiceServer {
                 }] as any)
 
                 if (insertError) {
-                    console.warn(`⚠️ Failed to create admin in-app notification for ${admin.id}:`, insertError)
+                    console.warn(`⚠️ Failed to create in-app notification for ${adminId}:`, insertError)
                 }
 
                 // Push notification
-                PushNotificationServiceServer.sendToUser(admin.id, title, message, data).catch(err =>
-                    console.error(`⚠️ Failed to send admin push to ${admin.id}:`, err)
+                PushNotificationServiceServer.sendToUser(adminId, title, message, data).catch(err =>
+                    console.error(`⚠️ Failed to send push to ${adminId}:`, err)
                 )
 
                 // Email notification
@@ -330,7 +330,7 @@ export class NotificationServiceServer {
                             ...data
                         }
                     }).catch(err =>
-                        console.error(`⚠️ Failed to send admin email to ${admin.email}:`, err)
+                        console.error(`⚠️ Failed to send admin email to ${adminEmail}:`, err)
                     )
                 }
             })
