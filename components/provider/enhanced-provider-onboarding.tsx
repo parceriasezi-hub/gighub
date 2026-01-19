@@ -364,6 +364,8 @@ export function EnhancedProviderOnboarding() {
               // If it's a new file (has file object), upload it
               if (media.file) {
                 const fileExt = media.file.name.split('.').pop()
+                // Sanitize filename: remove special chars, replace spaces with underscores
+                const sanitizedName = media.file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
                 const fileName = `portfolio/${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
 
                 const { error: uploadError } = await supabase.storage
@@ -401,7 +403,8 @@ export function EnhancedProviderOnboarding() {
 
         // Check if it's a new File needing upload
         if (doc instanceof File) {
-          const path = `providers/${user.id}/id_${Date.now()}_${doc.name}`
+          const sanitizedName = doc.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+          const path = `providers/${user.id}/id_${Date.now()}_${sanitizedName}`
           url = await uploadFile(doc, "documents", path)
         }
 
@@ -422,7 +425,8 @@ export function EnhancedProviderOnboarding() {
         let name = doc.name
 
         if (doc instanceof File) {
-          const path = `providers/${user.id}/address_${Date.now()}_${doc.name}`
+          const sanitizedName = doc.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+          const path = `providers/${user.id}/address_${Date.now()}_${sanitizedName}`
           url = await uploadFile(doc, "documents", path)
         }
 
@@ -443,7 +447,8 @@ export function EnhancedProviderOnboarding() {
         let name = doc.name
 
         if (doc instanceof File) {
-          const path = `providers/${user.id}/other_${Date.now()}_${doc.name}`
+          const sanitizedName = doc.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+          const path = `providers/${user.id}/other_${Date.now()}_${sanitizedName}`
           url = await uploadFile(doc, "documents", path)
         }
 
