@@ -59,9 +59,21 @@ export function ServiceSelector({ userId, selectedServices, onServicesChange }: 
 
             if (catData && subData) {
                 // Filter categories: Only show those that have at least one subcategory
-                // This hides legacy "service-level" categories from the main list
+                // AND are in our explicit allowlist of Main Categories to avoid legacy clutter
+                const ALLOWED_CATEGORIES = [
+                    "Construção e Remodelação",
+                    "Serviços Domésticos",
+                    "Eventos e Entretenimento",
+                    "Saúde e Bem-estar",
+                    "Tecnologia e Design",
+                    "Aulas e Formação"
+                ]
+
                 const parentIds = new Set(subData.map(s => s.category_id))
-                const validCategories = catData.filter(c => parentIds.has(c.id))
+
+                const validCategories = catData.filter(c =>
+                    parentIds.has(c.id) && ALLOWED_CATEGORIES.some(allowed => c.name.includes(allowed) || allowed.includes(c.name))
+                )
 
                 setCategories(validCategories)
             }
