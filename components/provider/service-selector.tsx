@@ -61,18 +61,19 @@ export function ServiceSelector({ userId, selectedServices, onServicesChange }: 
                 // Filter categories: Only show those that have at least one subcategory
                 // AND are in our explicit allowlist of Main Categories to avoid legacy clutter
                 const ALLOWED_CATEGORIES = [
-                    "Construção e Remodelação",
-                    "Serviços Domésticos",
-                    "Eventos e Entretenimento",
-                    "Saúde e Bem-estar",
-                    "Tecnologia e Design",
-                    "Aulas e Formação"
+                    "AULAS",
+                    "CASA",
+                    "BEM-ESTAR",
+                    "EMPRESAS",
+                    "EVENTOS",
+                    "OUTROS"
                 ]
 
                 const parentIds = new Set(subData.map(s => s.category_id))
 
                 const validCategories = catData.filter(c =>
-                    parentIds.has(c.id) && ALLOWED_CATEGORIES.some(allowed => c.name.includes(allowed) || allowed.includes(c.name))
+                    // Case insensitive check
+                    parentIds.has(c.id) && ALLOWED_CATEGORIES.some(allowed => c.name.toUpperCase() === allowed || c.name.toUpperCase().includes(allowed))
                 )
 
                 setCategories(validCategories)
