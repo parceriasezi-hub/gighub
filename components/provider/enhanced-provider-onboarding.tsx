@@ -38,10 +38,18 @@ interface Specialty {
   years: number
 }
 
+interface PortfolioMedia {
+  id?: string
+  file?: File
+  url: string
+  type: 'image' | 'video' | 'pdf'
+  name: string
+}
+
 interface PortfolioItem {
   title: string
   description: string
-  imageUrl: string
+  media: PortfolioMedia[]
   projectUrl: string
   technologies: string[]
   completionDate: string
@@ -206,7 +214,7 @@ export function EnhancedProviderOnboarding() {
       {
         title: "",
         description: "",
-        imageUrl: "",
+        media: [],
         projectUrl: "",
         technologies: [],
         completionDate: "",
@@ -664,15 +672,71 @@ export function EnhancedProviderOnboarding() {
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>URL da Imagem</Label>
-                    <Input
-                      type="url"
-                      placeholder="https://exemplo.com/imagem.jpg"
-                      value={item.imageUrl}
-                      onChange={(e) => updatePortfolioItem(index, "imageUrl", e.target.value)}
-                    />
+                  <div className="space-y-4 col-span-2">
+                    <Label>Media do Projeto (Fotos, Vídeos, PDFs)</Label> 
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
+                      {item.media.map((media, mIndex) => (
+                        <div key={mIndex} className="relative group border rounded-lg overflow-hidden h-32 flex items-center justify-center bg-muted">
+                           {media.type === 'image' && (
+                             <img src={media.url} alt={media.name} className="h-full w-full object-cover" />
+                           )}
+                           {media.type === 'video' && (
+                             <div className="flex flex-col items-center">
+                               <div className="h-10 w-10 rounded-full bg-black/50 flex items-center justify-center text-white mb-1">▶</div>
+                               <span className="text-xs truncate max-w-[90%] px-1">{media.name}</span>
+                             </div>
+                           )}
+                           {media.type === 'pdf' && (
+                             <div className="flex flex-col items-center p-2 text-center">
+                               <FileText className="h-8 w-8 text-primary mb-1" />
+                               <span className="text-xs break-all line-clamp-2">{media.name}</span>
+                             </div>
+                           )}
+                           
+                           <Button
+                             type="button"
+                             variant="destructive"
+                             size="icon"
+                             className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                             onClick={() => {
+                               const newMedia = [...item.media]
+                               newMedia.splice(mIndex, 1)
+                               updatePortfolioItem(index, "media", newMedia)
+                             }}
+                           >
+                             <X className="h-3 w-3" />
+                           </Button>
+                        </div>
+                      ))}
+                      
+                      <label className="border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center h-32 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <Plus className="h-8 w-8 text-muted-foreground mb-2" />
+                        <span className="text-xs text-muted-foreground">Adicionar Media</span>
+                        <input 
+                          type="file" 
+                          multiple 
+                          accept="image/*,video/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                             if (e.target.files) {
+                               const newMedia: PortfolioMedia[] = Array.from(e.target.files).map(file => {
+                                 let type: 'image'|'video'|'pdf' = 'image'
+                                 if (file.type.startsWith('video/')) type = 'video'
+                                 if (file.type === 'application/pdf') type = 'pdf'
+                                 
+                                 return {
+                                   file,
+                                   url: URL.createObjectURL(file),
+                                   type,
+                                   name: file.name
+                                 }
+                               })
+                               updatePortfolioItem(index, "media", [...item.media, ...newMedia])
+                             }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -726,276 +790,281 @@ export function EnhancedProviderOnboarding() {
             <Button onClick={handleNext}>Próximo</Button>
           </CardFooter>
         </Card>
-      )}
+  )
+}
 
-      {/* Step 5: Documentos */}
-      {currentStep === 5 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="mr-2 h-5 w-5" />
-              Documentos
-            </CardTitle>
-            <CardDescription>Envie os documentos necessários para verificação</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold">Documentação Obrigatória</h3>
-              <p className="text-sm text-muted-foreground">
-                Para validar a sua conta como prestador, necessitamos de alguns documentos.
-              </p>
-            </div>
+{/* Step 5: Documentos */ }
+{
+  currentStep === 5 && (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <FileText className="mr-2 h-5 w-5" />
+          Documentos
+        </CardTitle>
+        <CardDescription>Envie os documentos necessários para verificação</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="text-center mb-6">
+          <h3 className="text-lg font-semibold">Documentação Obrigatória</h3>
+          <p className="text-sm text-muted-foreground">
+            Para validar a sua conta como prestador, necessitamos de alguns documentos.
+          </p>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className={!documents.id ? "border-dashed" : "border-primary"}>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Documento de Identidade
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-col items-center justify-center py-4 border-2 border-dashed rounded-lg">
-                    {documents.id ? (
-                      <div className="text-center">
-                        <Check className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium">{documents.id.name}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-destructive"
-                          onClick={() => setDocuments({ ...documents, id: null })}
-                        >
-                          Remover
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground text-center">
-                          Clique para enviar CC ou Passaporte
-                        </p>
-                        <input
-                          type="file"
-                          className="hidden"
-                          id="id-upload"
-                          accept="image/*,.pdf"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) setDocuments({ ...documents, id: file })
-                          }}
-                        />
-                        <Button variant="outline" size="sm" className="mt-2" asChild>
-                          <label htmlFor="id-upload">Selecionar Ficheiro</label>
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className={!documents.address ? "border-dashed" : "border-primary"}>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Comprovativo de Morada
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-col items-center justify-center py-4 border-2 border-dashed rounded-lg">
-                    {documents.address ? (
-                      <div className="text-center">
-                        <Check className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium">{documents.address.name}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-destructive"
-                          onClick={() => setDocuments({ ...documents, address: null })}
-                        >
-                          Remover
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground text-center">
-                          Fatura ou documento oficial recente
-                        </p>
-                        <input
-                          type="file"
-                          className="hidden"
-                          id="address-upload"
-                          accept="image/*,.pdf"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) setDocuments({ ...documents, address: file })
-                          }}
-                        />
-                        <Button variant="outline" size="sm" className="mt-2" asChild>
-                          <label htmlFor="address-upload">Selecionar Ficheiro</label>
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-6">
-              <h4 className="text-sm font-medium mb-3">Outros Documentos (Certificados, Seguros, etc.)</h4>
-              <div className="space-y-3">
-                {documents.others.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center">
-                      <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-                    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className={!documents.id ? "border-dashed" : "border-primary"}>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Documento de Identidade
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col items-center justify-center py-4 border-2 border-dashed rounded-lg">
+                {documents.id ? (
+                  <div className="text-center">
+                    <Check className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium">{documents.id.name}</p>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        const newOthers = [...documents.others]
-                        newOthers.splice(index, 1)
-                        setDocuments({ ...documents, others: newOthers })
-                      }}
+                      className="mt-2 text-destructive"
+                      onClick={() => setDocuments({ ...documents, id: null })}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      Remover
                     </Button>
                   </div>
-                ))}
-                <div className="flex justify-center p-4 border-2 border-dashed rounded-lg">
-                  <input
-                    type="file"
-                    className="hidden"
-                    id="other-upload"
-                    multiple
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || [])
-                      setDocuments({ ...documents, others: [...documents.others, ...files] })
-                    }}
-                  />
-                  <Button variant="outline" size="sm" asChild>
-                    <label htmlFor="other-upload">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Documento
-                    </label>
-                  </Button>
-                </div>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      Clique para enviar CC ou Passaporte
+                    </p>
+                    <input
+                      type="file"
+                      className="hidden"
+                      id="id-upload"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) setDocuments({ ...documents, id: file })
+                      }}
+                    />
+                    <Button variant="outline" size="sm" className="mt-2" asChild>
+                      <label htmlFor="id-upload">Selecionar Ficheiro</label>
+                    </Button>
+                  </>
+                )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className={!documents.address ? "border-dashed" : "border-primary"}>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Comprovativo de Morada
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col items-center justify-center py-4 border-2 border-dashed rounded-lg">
+                {documents.address ? (
+                  <div className="text-center">
+                    <Check className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium">{documents.address.name}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 text-destructive"
+                      onClick={() => setDocuments({ ...documents, address: null })}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      Fatura ou documento oficial recente
+                    </p>
+                    <input
+                      type="file"
+                      className="hidden"
+                      id="address-upload"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) setDocuments({ ...documents, address: file })
+                      }}
+                    />
+                    <Button variant="outline" size="sm" className="mt-2" asChild>
+                      <label htmlFor="address-upload">Selecionar Ficheiro</label>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-6">
+          <h4 className="text-sm font-medium mb-3">Outros Documentos (Certificados, Seguros, etc.)</h4>
+          <div className="space-y-3">
+            {documents.others.map((file, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newOthers = [...documents.others]
+                    newOthers.splice(index, 1)
+                    setDocuments({ ...documents, others: newOthers })
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <div className="flex justify-center p-4 border-2 border-dashed rounded-lg">
+              <input
+                type="file"
+                className="hidden"
+                id="other-upload"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || [])
+                  setDocuments({ ...documents, others: [...documents.others, ...files] })
+                }}
+              />
+              <Button variant="outline" size="sm" asChild>
+                <label htmlFor="other-upload">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Documento
+                </label>
+              </Button>
             </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handlePrevious}>
-              Anterior
-            </Button>
-            <Button onClick={handleNext}>Próximo</Button>
-          </CardFooter>
-        </Card>
-      )}
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={handlePrevious}>
+          Anterior
+        </Button>
+        <Button onClick={handleNext}>Próximo</Button>
+      </CardFooter>
+    </Card>
+  )
+}
 
-      {/* Step 6: Revisão e Submissão */}
-      {currentStep === 6 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CheckCircle className="mr-2 h-5 w-5" />
-              Revisão e Submissão
-            </CardTitle>
-            <CardDescription>Revise suas informações antes de enviar a candidatura</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Resumo das informações */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Informações Básicas</h4>
-                <div className="bg-gray-50 p-3 rounded-lg space-y-1">
-                  <p>
-                    <strong>Biografia:</strong> {formData.bio.substring(0, 100)}...
-                  </p>
-                  <p>
-                    <strong>Telefone:</strong> {formData.phone}
-                  </p>
-                  <p>
-                    <strong>Experiência:</strong> {formData.experienceYears} anos
-                  </p>
-                  <p>
-                    <strong>Taxa Horária:</strong> {formData.hourlyRate}€/hora
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Categorias Selecionadas</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCategories.map((categoryId) => {
-                    const category = categories.find((c) => c.id === categoryId)
-                    return (
-                      <Badge key={categoryId} variant="outline">
-                        {category?.name}
-                      </Badge>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Especialidades ({specialties.length})</h4>
-                <div className="space-y-2">
-                  {specialties.map((specialty, index) => (
-                    <div key={index} className="bg-gray-50 p-2 rounded">
-                      <span className="font-medium">{specialty.name}</span> -
-                      <span className="text-sm text-gray-600 ml-1">
-                        {specialty.level} ({specialty.years} anos)
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Portfolio ({portfolio.length} projetos)</h4>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {portfolio.map((item, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded">
-                      <p className="font-medium">{item.title}</p>
-                      <p className="text-sm text-gray-600">{item.description.substring(0, 80)}...</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+{/* Step 6: Revisão e Submissão */ }
+{
+  currentStep === 6 && (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <CheckCircle className="mr-2 h-5 w-5" />
+          Revisão e Submissão
+        </CardTitle>
+        <CardDescription>Revise suas informações antes de enviar a candidatura</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Resumo das informações */}
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium mb-2">Informações Básicas</h4>
+            <div className="bg-gray-50 p-3 rounded-lg space-y-1">
+              <p>
+                <strong>Biografia:</strong> {formData.bio.substring(0, 100)}...
+              </p>
+              <p>
+                <strong>Telefone:</strong> {formData.phone}
+              </p>
+              <p>
+                <strong>Experiência:</strong> {formData.experienceYears} anos
+              </p>
+              <p>
+                <strong>Taxa Horária:</strong> {formData.hourlyRate}€/hora
+              </p>
             </div>
+          </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-blue-800">Próximos Passos</h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    Após enviar sua candidatura, nossa equipe irá analisá-la em até 48 horas. Você receberá uma
-                    notificação por email quando sua conta for aprovada.
-                  </p>
-                </div>
-              </div>
+          <div>
+            <h4 className="font-medium mb-2">Categorias Selecionadas</h4>
+            <div className="flex flex-wrap gap-2">
+              {selectedCategories.map((categoryId) => {
+                const category = categories.find((c) => c.id === categoryId)
+                return (
+                  <Badge key={categoryId} variant="outline">
+                    {category?.name}
+                  </Badge>
+                )
+              })}
             </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handlePrevious}>
-              Anterior
-            </Button>
-            <Button onClick={handleSubmit} disabled={submitting} className="min-w-[120px]">
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                "Enviar Candidatura"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-    </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium mb-2">Especialidades ({specialties.length})</h4>
+            <div className="space-y-2">
+              {specialties.map((specialty, index) => (
+                <div key={index} className="bg-gray-50 p-2 rounded">
+                  <span className="font-medium">{specialty.name}</span> -
+                  <span className="text-sm text-gray-600 ml-1">
+                    {specialty.level} ({specialty.years} anos)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium mb-2">Portfolio ({portfolio.length} projetos)</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+              {portfolio.map((item, index) => (
+                <div key={index} className="bg-gray-50 p-3 rounded">
+                  <p className="font-medium">{item.title}</p>
+                  <p className="text-sm text-gray-600">{item.description.substring(0, 80)}...</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-800">Próximos Passos</h4>
+              <p className="text-sm text-blue-700 mt-1">
+                Após enviar sua candidatura, nossa equipe irá analisá-la em até 48 horas. Você receberá uma
+                notificação por email quando sua conta for aprovada.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={handlePrevious}>
+          Anterior
+        </Button>
+        <Button onClick={handleSubmit} disabled={submitting} className="min-w-[120px]">
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Enviando...
+            </>
+          ) : (
+            "Enviar Candidatura"
+          )}
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}
+    </div >
   )
 }
