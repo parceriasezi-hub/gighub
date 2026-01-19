@@ -78,12 +78,12 @@ export function EnhancedProviderOnboarding() {
   const [specialties, setSpecialties] = useState<Specialty[]>([])
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
   const [documents, setDocuments] = useState<{
-    id: File | null
-    address: File | null
+    id: File[]
+    address: File[]
     others: File[]
   }>({
-    id: null,
-    address: null,
+    id: [],
+    address: [],
     others: [],
   })
 
@@ -354,30 +354,33 @@ export function EnhancedProviderOnboarding() {
       // 5. Salvar documentos
       const docInserts: any[] = []
 
-      if (documents.id) {
-        const path = `providers/${user.id}/id_${Date.now()}_${documents.id.name}`
-        const url = await uploadFile(documents.id, "documents", path)
+      // Process ID documents
+      for (const file of documents.id) {
+        const path = `providers/${user.id}/id_${Date.now()}_${file.name}`
+        const url = await uploadFile(file, "documents", path)
         docInserts.push({
           provider_id: user.id,
           document_type: "id",
-          document_name: documents.id.name,
+          document_name: file.name,
           document_url: url,
           status: "pending"
         })
       }
 
-      if (documents.address) {
-        const path = `providers/${user.id}/address_${Date.now()}_${documents.address.name}`
-        const url = await uploadFile(documents.address, "documents", path)
+      // Process Address documents
+      for (const file of documents.address) {
+        const path = `providers/${user.id}/address_${Date.now()}_${file.name}`
+        const url = await uploadFile(file, "documents", path)
         docInserts.push({
           provider_id: user.id,
           document_type: "address",
-          document_name: documents.address.name,
+          document_name: file.name,
           document_url: url,
           status: "pending"
         })
       }
 
+      // Process Other documents
       for (const file of documents.others) {
         const path = `providers/${user.id}/other_${Date.now()}_${file.name}`
         const url = await uploadFile(file, "documents", path)
@@ -391,6 +394,9 @@ export function EnhancedProviderOnboarding() {
       }
 
       if (docInserts.length > 0) {
+        // Only delete old docs if we are sure? Actually, deleting all pending docs for this provider before re-inserting is probably safer for this flow
+        // But maybe we should only delete if we are in a 're-submission' flow. 
+        // For now, consistent with previous logic: wipe and replace
         await supabase.from("provider_documents").delete().eq("provider_id", user.id)
         await supabase.from("provider_documents").insert(docInserts as any)
       }
@@ -962,11 +968,7 @@ export function EnhancedProviderOnboarding() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          const newOthers = [...documents.others]
-                          newOthers.splice(index, 1)
-                          setDocuments({ ...documents, others: newOthers })
-                        }}
+                        onClick={() => removeDocument("others", index)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -978,10 +980,7 @@ export function EnhancedProviderOnboarding() {
                       className="hidden"
                       id="other-upload"
                       multiple
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || [])
-                        setDocuments({ ...documents, others: [...documents.others, ...files] })
-                      }}
+                      onChange={(e) => handleFileChange(e, "others")}
                     />
                     <Button variant="outline" size="sm" asChild>
                       <label htmlFor="other-upload">
@@ -997,7 +996,9 @@ export function EnhancedProviderOnboarding() {
               <Button variant="outline" onClick={handlePrevious}>
                 Anterior
               </Button>
-              <Button onClick={handleNext}>Próximo</Button>
+              <Button onClick={handleNext} disabled={documents.id.length === 0 || documents.address.length === 0}>
+                Próximo
+              </Button>
             </CardFooter>
           </Card>
         )
