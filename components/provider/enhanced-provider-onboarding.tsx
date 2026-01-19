@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase/client"
 import { AlertCircle, CheckCircle, Loader2, User, Briefcase, FileText, Star, Plus, X, Upload, Trash2, Check } from "lucide-react"
 import type { Database } from "@/lib/supabase/database.types"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { ServiceSelector } from "@/components/provider/service-selector"
 
 // Use any for complex Supabase types to avoid deep nesting issues during rapid dev
 type Category = any // Database["public"]["Tables"]["categories"]["Row"]
@@ -116,7 +117,7 @@ export function EnhancedProviderOnboarding() {
           location: profile.location || "",
         })
 
-        // Carregar especialidades existentes
+        // Carregar especialidades existentes (Legacy)
         const { data: specialtiesData } = await supabase
           .from("provider_specialties")
           .select("*")
@@ -130,6 +131,16 @@ export function EnhancedProviderOnboarding() {
               years: s.years_experience,
             })),
           )
+        }
+
+        // Carregar serviços selecionados (New)
+        const { data: servicesData } = await supabase
+          .from("provider_services")
+          .select("service_id")
+          .eq("provider_id", user.id)
+
+        if (servicesData) {
+          setSelectedServices(servicesData.map((s: any) => s.service_id))
         }
 
         // Carregar portfolio existente
@@ -242,18 +253,18 @@ export function EnhancedProviderOnboarding() {
 
       await updateProfile(profileUpdate)
 
-      // 2. Salvar categorias
-      await supabase.from("provider_categories").delete().eq("provider_id", user.id)
+      // 2. Salvar serviços (e categorias implicitamente se necessário, mas Services é o foco)
+      await supabase.from("provider_services").delete().eq("provider_id", user.id)
 
-      if (selectedCategories.length > 0) {
-        const categoryInserts = selectedCategories.map((categoryId) => ({
+      if (selectedServices.length > 0) {
+        const serviceInserts = selectedServices.map((serviceId) => ({
           provider_id: user.id,
-          category_id: categoryId,
+          service_id: serviceId,
         }))
-        await supabase.from("provider_categories").insert(categoryInserts as any)
+        await supabase.from("provider_services").insert(serviceInserts as any)
       }
 
-      // 3. Salvar especialidades
+      // 3. Salvar especialidades (Habilidades extras)
       await supabase.from("provider_specialties").delete().eq("provider_id", user.id)
 
       if (specialties.length > 0) {
@@ -487,70 +498,57 @@ export function EnhancedProviderOnboarding() {
         </Card>
       )}
 
-      {/* Step 2: Categorias */}
+      {/* Step 2: Seleção de Serviços */}
       {currentStep === 2 && (
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Briefcase className="mr-2 h-5 w-5" />
-              Categorias de Serviço
+              Serviços Oferecidos
             </CardTitle>
-            <CardDescription>Selecione as categorias em que oferece serviços</CardDescription>
+            <CardDescription>Selecione detalhadamente os serviços que você presta</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {categories.map((category) => (
-                <div key={category.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`category-${category.id}`}
-                    checked={selectedCategories.includes(category.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedCategories([...selectedCategories, category.id])
-                      } else {
-                        setSelectedCategories(selectedCategories.filter((id) => id !== category.id))
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`category-${category.id}`} className="text-sm">
-                    {category.name}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            {selectedCategories.length === 0 && (
+          <CardContent className="flex-1">
+            {/* New Hierarchical Selector */}
+            <ServiceSelector
+              userId={user?.id || ""}
+              selectedServices={selectedServices}
+              onServicesChange={setSelectedServices}
+            />
+
+            {selectedServices.length === 0 && (
               <p className="text-amber-600 text-sm mt-4 flex items-center">
                 <AlertCircle className="h-4 w-4 mr-1" />
-                Selecione pelo menos uma categoria
+                Selecione pelo menos um serviço
               </p>
             )}
           </CardContent>
-          <CardFooter className="flex justify-between">
+          <CardFooter className="flex justify-between mt-4">
             <Button variant="outline" onClick={handlePrevious}>
               Anterior
             </Button>
-            <Button onClick={handleNext} disabled={selectedCategories.length === 0}>
+            <Button onClick={handleNext} disabled={selectedServices.length === 0}>
               Próximo
             </Button>
           </CardFooter>
         </Card>
       )}
 
-      {/* Step 3: Especialidades */}
+      {/* Step 3: Detalhes Adicionais (Era Step 3 Specialties, agora opcional ou extra) */}
       {currentStep === 3 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <Star className="mr-2 h-5 w-5" />
-              Especialidades
+              Habilidades Adicionais (Opcional)
             </CardTitle>
-            <CardDescription>Detalhe suas especialidades e nível de experiência</CardDescription>
+            <CardDescription>Adicione habilidades extras que não encontrou na lista de serviços</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {specialties.map((specialty, index) => (
               <div key={index} className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Especialidade {index + 1}</h4>
+                  <h4 className="font-medium">Habilidade {index + 1}</h4>
                   <Button variant="ghost" size="sm" onClick={() => removeSpecialty(index)}>
                     <X className="h-4 w-4" />
                   </Button>
@@ -558,9 +556,9 @@ export function EnhancedProviderOnboarding() {
 
                 <div className="grid md:grid-cols-3 gap-3">
                   <div className="space-y-2">
-                    <Label>Nome da Especialidade</Label>
+                    <Label>Nome da Habilidade</Label>
                     <Input
-                      placeholder="Ex: Desenvolvimento Web"
+                      placeholder="Ex: Soft Skills, Línguas..."
                       value={specialty.name}
                       onChange={(e) => updateSpecialty(index, "name", e.target.value)}
                     />
@@ -597,7 +595,7 @@ export function EnhancedProviderOnboarding() {
 
             <Button variant="outline" onClick={addSpecialty} className="w-full bg-transparent">
               <Plus className="mr-2 h-4 w-4" />
-              Adicionar Especialidade
+              Adicionar Habilidade
             </Button>
           </CardContent>
           <CardFooter className="flex justify-between">
