@@ -78,6 +78,40 @@ export function ProviderApproval() {
 
   useEffect(() => {
     fetchProviders()
+
+    // Real-time Subscription
+    const channel = supabase
+      .channel('admin-provider-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'profiles',
+          filter: 'is_provider=eq.true' // Only provider profiles
+        },
+        (payload) => {
+          console.log('RT: Profile change detected', payload)
+          fetchProviders()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for new docs too
+          schema: 'public',
+          table: 'provider_documents'
+        },
+        (payload) => {
+          console.log('RT: Document change detected', payload)
+          fetchProviders()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const fetchProviders = async () => {
@@ -88,7 +122,7 @@ export function ProviderApproval() {
         .from("profiles")
         .select("*")
         .eq("is_provider", true)
-        .in("provider_status", ["pending", "approved", "rejected"])
+        .in("provider_status", ["pending", "approved", "rejected", "changes_requested"])
         .order("created_at", { ascending: false })
 
       if (providersError) throw providersError
@@ -187,6 +221,10 @@ export function ProviderApproval() {
     }
   }
 
+  // Reuse rejectionReason state for changes request as well, or rename it to "statusReason"
+  // For simplicity, let's use the same state variable but interpret it based on the action button clicked
+
+
   const togglePhoneVerification = async (providerId: string, currentStatus: boolean) => {
     try {
       const { error } = await (supabase
@@ -255,6 +293,7 @@ export function ProviderApproval() {
       approved: "default",
       rejected: "destructive",
       suspended: "destructive",
+      changes_requested: "outline", // Orange/Amber not in default variants, outline is distinct enough or we can use custom class
     } as const
 
     const labels = {
@@ -262,16 +301,23 @@ export function ProviderApproval() {
       approved: "Approved",
       rejected: "Rejected",
       suspended: "Suspended",
+      changes_requested: "Changes Requested",
     }
 
     return (
-      <Badge variant={variants[status as keyof typeof variants] || "secondary"}>
+      <Badge
+        variant={variants[status as keyof typeof variants] || "secondary"}
+        className={status === "changes_requested" ? "bg-amber-100 text-amber-800 border-amber-200" : ""}
+      >
         {labels[status as keyof typeof labels] || status}
       </Badge>
     )
   }
 
   const filterProviders = (status: string) => {
+    if (status === "pending") {
+      return providers.filter((provider) => provider.provider_status === "pending" || provider.provider_status === "changes_requested")
+    }
     return providers.filter((provider) => provider.provider_status === status)
   }
 
@@ -297,7 +343,7 @@ export function ProviderApproval() {
                     <div className="flex items-center text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                       <Phone className="w-3 h-3 mr-1" />
                       {provider.phone}
-                      {provider.phone_verified && <CheckCircle className="w-3 h-3 ml-1 text-green-600" title="Verified" />}
+                      {provider.phone_verified && <CheckCircle className="w-3 h-3 ml-1 text-green-600" />}
                     </div>
                   )}
                   <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
@@ -606,6 +652,40 @@ export function ProviderApproval() {
                             </div>
                             <div className="flex justify-end space-x-2">
                               <Button variant="destructive" onClick={() => updateProviderStatus(selectedProvider.id, "rejected", rejectionReason)}>Reject</Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800">
+                            <FileText className="h-4 w-4 mr-2" />
+                            Request Changes
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Request Changes</DialogTitle>
+                            <DialogDescription>
+                              Explain what is missing or needs correction. The provider will be notified to update their application.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="changes-reason" className="text-sm font-medium">Instructions</Label>
+                              <Textarea
+                                id="changes-reason"
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="E.g., Please upload a clearer ID and add more portfolio items..."
+                                rows={4}
+                              />
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                              <Button variant="default" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => updateProviderStatus(selectedProvider.id, "changes_requested", rejectionReason)}>
+                                Send Request
+                              </Button>
                             </div>
                           </div>
                         </DialogContent>

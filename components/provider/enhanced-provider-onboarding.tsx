@@ -523,7 +523,8 @@ export function EnhancedProviderOnboarding() {
       await triggerNotificationAction("provider_application_submitted", {
         providerId: user.id,
         providerName: formData.bio ? "Novo Prestador" : "Prestador", // Fallback name
-        providerEmail: user.email
+        providerEmail: user.email,
+        action_url: "/dashboard/admin/providers" // Directing to the providers page
       })
 
       toast({
@@ -532,7 +533,8 @@ export function EnhancedProviderOnboarding() {
         variant: "default",
       })
 
-      router.push("/dashboard/provider")
+      // Force refresh or redirect to ensure status is updated in UI context if needed
+      window.location.href = "/dashboard/provider"
     } catch (error: any) {
       console.error("Erro ao enviar candidatura:", error)
       toast({
@@ -604,6 +606,19 @@ export function EnhancedProviderOnboarding() {
             <div>
               <p className="font-semibold">Candidatura Anterior Recusada</p>
               <p className="text-sm mt-1">{profile?.provider_rejection_reason || "Revise suas informações e tente novamente."}</p>
+            </div>
+          </div>
+        )}
+        {providerStatus === 'changes_requested' && (
+          <div className="mt-4 p-4 bg-amber-50 text-amber-800 rounded-lg border border-amber-200 max-w-2xl mx-auto flex items-start text-left">
+            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Alterações Solicitadas</p>
+              <p className="text-sm mt-1">A nossa equipa solicitou alterações na sua candidatura:</p>
+              <p className="text-sm mt-2 italic font-medium bg-amber-100/50 p-2 rounded">
+                "{profile?.provider_rejection_reason || "Atualize as informações necessárias."}"
+              </p>
+              <p className="text-sm mt-2">Por favor faça as alterações necessárias e submeta novamente.</p>
             </div>
           </div>
         )}

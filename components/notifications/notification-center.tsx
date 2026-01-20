@@ -50,7 +50,12 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
                   {unreadNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors"
+                      className={`flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors ${notification.data?.action_url ? "cursor-pointer" : ""}`}
+                      onClick={() => {
+                        if (notification.data?.action_url) {
+                          window.location.href = notification.data.action_url
+                        }
+                      }}
                     >
                       <div className="flex-1 grid gap-1">
                         <p className="text-sm font-medium">{notification.title}</p>
@@ -60,7 +65,14 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
                         </time>
                       </div>
                       {!notification.read && (
-                        <Button variant="ghost" size="sm" onClick={() => markAsRead(notification.id)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            markAsRead(notification.id)
+                          }}
+                        >
                           Marcar como lida
                         </Button>
                       )}

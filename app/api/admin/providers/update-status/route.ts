@@ -40,11 +40,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized: No active session found" }, { status: 401 })
         }
 
-        const { data: profile } = await supabase
+        const { data: profileData } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", user.id)
             .single()
+
+        const profile = profileData as any
 
         if (!profile || profile.role !== "admin") {
             return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
@@ -64,9 +66,10 @@ export async function POST(request: NextRequest) {
         // 3. The status in the providers table
 
         const role = status === "approved" ? "provider" : status === "rejected" ? "user" : "provider_pending"
+        // changes_requested also keeps role as provider_pending but updates status to changes_requested
 
-        const { error: profileError } = await supabaseAdmin
-            .from("profiles")
+        const { error: profileError } = await (supabaseAdmin
+            .from("profiles") as any)
             .update({
                 provider_status: status,
                 role: role,
@@ -80,8 +83,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Update the providers table too if it exists
-        const { error: providerTableError } = await supabaseAdmin
-            .from("providers")
+        const { error: providerTableError } = await (supabaseAdmin
+            .from("providers") as any)
             .update({
                 status: status,
                 updated_at: new Date().toISOString(),
@@ -95,7 +98,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Trigger Notification (Email + In-App)
-        const triggerType = status === "approved" ? "provider_approved" : status === "rejected" ? "provider_rejected" : null
+        const triggerType =
+            status === "approved" ? "provider_approved" :
+                status === "rejected" ? "provider_rejected" :
+                    status === "changes_requested" ? "admin_requested_changes" : null
 
         if (triggerType) {
             // We don't await this to ensure fast response, or we can await if we want to catch errors here

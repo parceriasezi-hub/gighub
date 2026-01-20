@@ -94,6 +94,14 @@ export class NotificationServiceServer {
                 title = "Pedido de Levantamento 💸"
                 message = `O seu pedido de levantamento de ${new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(data.amount)} foi recebido.`
                 break
+            case "withdrawal_requested":
+                title = "Pedido de Levantamento 💸"
+                message = `O seu pedido de levantamento de ${new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(data.amount)} foi recebido.`
+                break
+            case "admin_requested_changes":
+                title = "Ação Necessária: Alterações Solicitadas ⚠️"
+                message = `A sua candidatura precisa de alterações. Motivo: ${data.rejectionReason}`
+                break
             // Adicionar outros casos conforme necessário
         }
 
@@ -101,7 +109,12 @@ export class NotificationServiceServer {
         if (trigger === "provider_application_submitted") {
             const adminTitle = "Nova Candidatura de Prestador 📋"
             const adminMessage = `O utilizador ${data.userName} submeteu uma candidatura para ser prestador.`
-            await this.notifyAdmins(adminTitle, adminMessage, "admin_provider_application", data)
+            // Ensure action_url is passed if present in data, otherwise default to admin providers page
+            const notificationData = {
+                ...data,
+                action_url: data.action_url || "/dashboard/admin/providers"
+            }
+            await this.notifyAdmins(adminTitle, adminMessage, "admin_provider_application", notificationData)
         } else if (trigger === "welcome_email") {
             const adminTitle = "Novo Utilizador Confirmado ✅"
             const adminMessage = `O utilizador ${data.userName} (${data.userEmail}) confirmou o email. Por favor, verifique o número de telefone.`
@@ -137,6 +150,7 @@ export class NotificationServiceServer {
             "response_accepted",
             "response_rejected",
             "withdrawal_requested",
+            "admin_requested_changes",
             "plan_upgraded" // Usually professional plans
         ]
 
@@ -287,11 +301,8 @@ export class NotificationServiceServer {
             // 2. Send to each admin
             const adminPromises = admins.map(async (admin) => {
                 const adminId = (admin as any).id
-                // Skiping if the admin is the one who triggered the notification
-                if (adminId === data.userId) {
-                    console.log(`ℹ️ Skipping admin alert for user ${adminId} as they are the triggerer.`)
-                    return
-                }
+                // Removed self-skip check to allow testing/verification
+                // if (adminId === data.userId) { ... }
 
                 // In-app notification
                 const { error: insertError } = await supabase.from("notifications").insert([{
