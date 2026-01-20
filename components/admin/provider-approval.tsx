@@ -302,7 +302,7 @@ export function ProviderApproval() {
       approved: "default",
       rejected: "destructive",
       suspended: "destructive",
-      changes_requested: "outline", // Orange/Amber not in default variants, outline is distinct enough or we can use custom class
+      changes_requested: "outline",
     } as const
 
     const labels = {
@@ -329,8 +329,6 @@ export function ProviderApproval() {
     }
     return providers.filter((provider) => provider.provider_status === status)
   }
-
-
 
   return (
     <div className="space-y-6">

@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
             .update({
                 provider_status: status,
                 role: role,
+                provider_rejection_reason: reason, // Persist the reason in the profile
                 updated_at: new Date().toISOString(),
             })
             .eq("id", providerId)

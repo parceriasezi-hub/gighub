@@ -143,8 +143,8 @@ export function EnhancedProviderOnboarding() {
         setCategories(categoriesData || [])
       }
 
-      // Carregar dados existentes se já for prestador
-      if (profile?.is_provider) {
+      // Carregar dados existentes se já for prestador ou tiver alterações solicitadas
+      if (profile?.is_provider || profile?.provider_status === 'changes_requested' || profile?.provider_status === 'pending') {
         const p = profile as any;
         setFormData({
           bio: p.provider_bio || "",
