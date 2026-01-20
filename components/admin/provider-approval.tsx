@@ -73,6 +73,7 @@ export function ProviderApproval() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
+  const [activeActionDialog, setActiveActionDialog] = useState<'reject' | 'changes_requested' | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
   const { toast } = useToast()
 
@@ -769,68 +770,29 @@ export function ProviderApproval() {
             </div>
             {selectedProvider && selectedProvider.provider_status === "pending" && (
               <div className="flex space-x-3">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800">
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Reject Application
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Reject Provider</DialogTitle>
-                      <DialogDescription>State the reason for rejection to notify the provider.</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Rejection reason</label>
-                        <Textarea
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          placeholder="Explain the reason for rejection..."
-                          rows={3}
-                        />
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="destructive" onClick={() => updateProviderStatus(selectedProvider.id, "rejected", rejectionReason)}>Reject</Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                  onClick={() => {
+                    setRejectionReason("")
+                    setActiveActionDialog('reject')
+                  }}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject Application
+                </Button>
 
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Request Changes
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Request Changes</DialogTitle>
-                      <DialogDescription>
-                        Explain what is missing or needs correction. The provider will be notified to update their application.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="changes-reason" className="text-sm font-medium">Instructions</Label>
-                        <Textarea
-                          id="changes-reason"
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          placeholder="E.g., Please upload a clearer ID and add more portfolio items..."
-                          rows={4}
-                        />
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="default" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => updateProviderStatus(selectedProvider.id, "changes_requested", rejectionReason)}>
-                          Send Request
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button
+                  variant="outline"
+                  className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                  onClick={() => {
+                    setRejectionReason("")
+                    setActiveActionDialog('changes_requested')
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Request Changes
+                </Button>
 
                 <Button onClick={() => updateProviderStatus(selectedProvider.id, "approved")} className="bg-green-600 hover:bg-green-700 text-white min-w-[150px]">
                   <CheckCircle className="h-4 w-4 mr-2" />
@@ -841,3 +803,80 @@ export function ProviderApproval() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={activeActionDialog === 'reject'} onOpenChange={(open) => !open && setActiveActionDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Provider</DialogTitle>
+            <DialogDescription>State the reason for rejection to notify the provider.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Rejection reason</label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explain the reason for rejection..."
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setActiveActionDialog(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (selectedProvider) {
+                    updateProviderStatus(selectedProvider.id, "rejected", rejectionReason)
+                    setActiveActionDialog(null)
+                  }
+                }}
+              >
+                Reject
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request Changes Dialog */}
+      <Dialog open={activeActionDialog === 'changes_requested'} onOpenChange={(open) => !open && setActiveActionDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Changes</DialogTitle>
+            <DialogDescription>
+              Explain what is missing or needs correction. The provider will be notified to update their application.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="changes-reason" className="text-sm font-medium">Instructions</Label>
+              <Textarea
+                id="changes-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="E.g., Please upload a clearer ID and add more portfolio items..."
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setActiveActionDialog(null)}>Cancel</Button>
+              <Button
+                variant="default"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => {
+                  if (selectedProvider) {
+                    updateProviderStatus(selectedProvider.id, "changes_requested", rejectionReason)
+                    setActiveActionDialog(null)
+                  }
+                }}
+              >
+                Send Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
