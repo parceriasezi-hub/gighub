@@ -18,7 +18,7 @@ import { AlertCircle, CheckCircle, Loader2, User, Briefcase, FileText, Star, Plu
 import type { Database } from "@/lib/supabase/database.types"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import { ServiceSelector } from "@/components/provider/service-selector"
-import { triggerNotificationAction } from "@/app/actions/notifications"
+// import { triggerNotificationAction } from "@/app/actions/notifications"
 
 // Use any for complex Supabase types to avoid deep nesting issues during rapid dev
 type Category = any // Database["public"]["Tables"]["categories"]["Row"]
@@ -331,15 +331,18 @@ export function EnhancedProviderOnboarding() {
         provider_availability: formData.availability,
         provider_application_date: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        bio: formData.bio,
-        website: formData.website,
-        location: formData.location,
-        hourly_rate: formData.hourlyRate,
-        service_radius_km: formData.radiusKm,
+        // Client/User fields are NOT overwritten anymore
+        // bio: formData.bio,
+        // website: formData.website,
+        // location: formData.location,
+        // hourly_rate: formData.hourlyRate,
+        provider_service_radius: formData.radiusKm, // Correct field name based on migration
+        vat_number: (formData as any).vatNumber, // Add VAT number
+        service_radius_km: formData.radiusKm, // Keep for backward compatibility if needed
         performs_emergency_services: formData.performsEmergency,
-        postal_code: formData.postalCode,
+        // postal_code: formData.postalCode, // Don't overwrite client address
         phone_country_code: formData.countryCode,
-        phone: `${formData.countryCode} ${formData.phone}`,
+        // phone: ... // Don't overwrite client phone
       }
 
       await updateProfile(profileUpdate)
@@ -519,12 +522,19 @@ export function EnhancedProviderOnboarding() {
       // @ts-ignore - RPC arguments might be inferred incorrectly
       await supabase.rpc("initialize_provider_stats", { provider_uuid: user.id })
 
-      // 7. Notificar Admin
-      await triggerNotificationAction("provider_application_submitted", {
-        providerId: user.id,
-        providerName: formData.bio ? "Novo Prestador" : "Prestador", // Fallback name
-        providerEmail: user.email,
-        action_url: "/dashboard/admin/providers" // Directing to the providers page
+      // 7. Notificar Admin via API Route (avoid Server Action 405 on Cloudflare)
+      await fetch("/api/notifications/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trigger: "provider_application_submitted",
+          data: {
+            providerId: user.id,
+            providerName: formData.bio ? "Novo Prestador" : "Prestador",
+            providerEmail: user.email,
+            action_url: "/dashboard/admin/providers"
+          }
+        })
       })
 
       toast({
