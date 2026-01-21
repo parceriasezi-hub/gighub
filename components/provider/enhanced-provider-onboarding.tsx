@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase/client"
@@ -38,6 +39,7 @@ interface FormData {
   providerType: "individual" | "company"
   vatNumber: string
   companyName: string
+  commercialRegistryCode: string
 }
 
 interface Specialty {
@@ -95,7 +97,8 @@ export function EnhancedProviderOnboarding() {
     performsEmergency: false,
     providerType: "individual",
     vatNumber: "",
-    companyName: ""
+    companyName: "",
+    commercialRegistryCode: ""
   })
   const [specialties, setSpecialties] = useState<Specialty[]>([])
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
@@ -168,6 +171,10 @@ export function EnhancedProviderOnboarding() {
           postalCode: p.postal_code || "",
           radiusKm: p.service_radius_km || 30,
           performsEmergency: p.performs_emergency_services || false,
+          providerType: p.provider_type || "individual",
+          vatNumber: p.vat_number || "",
+          companyName: p.company_name || "",
+          commercialRegistryCode: p.commercial_registry_code || ""
         })
 
         // Carregar especialidades existentes (Legacy)
@@ -349,7 +356,10 @@ export function EnhancedProviderOnboarding() {
         // location: formData.location,
         // hourly_rate: formData.hourlyRate,
         provider_service_radius: formData.radiusKm, // Correct field name based on migration
-        vat_number: (formData as any).vatNumber, // Add VAT number
+        vat_number: formData.vatNumber,
+        provider_type: formData.providerType,
+        company_name: formData.providerType === "company" ? formData.companyName : null,
+        commercial_registry_code: formData.providerType === "company" ? formData.commercialRegistryCode : null,
         service_radius_km: formData.radiusKm, // Keep for backward compatibility if needed
         performs_emergency_services: formData.performsEmergency,
         // postal_code: formData.postalCode, // Don't overwrite client address
@@ -687,6 +697,49 @@ export function EnhancedProviderOnboarding() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label>Tipo de Prestador</Label>
+              <div className="flex gap-4">
+                <div onClick={() => setFormData(prev => ({ ...prev, providerType: "individual" }))}
+                  className={`flex-1 p-4 border rounded-lg cursor-pointer transition-colors ${formData.providerType === "individual" ? "border-primary bg-primary/5" : "hover:bg-gray-50"}`}>
+                  <div className="flex items-center gap-2 font-medium">
+                    <User className="h-4 w-4" /> Individual
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Trabalhador independente / Freelancer</p>
+                </div>
+                <div onClick={() => setFormData(prev => ({ ...prev, providerType: "company" }))}
+                  className={`flex-1 p-4 border rounded-lg cursor-pointer transition-colors ${formData.providerType === "company" ? "border-primary bg-primary/5" : "hover:bg-gray-50"}`}>
+                  <div className="flex items-center gap-2 font-medium">
+                    <Briefcase className="h-4 w-4" /> Empresa
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Sociedade / Empresa Registada</p>
+                </div>
+              </div>
+            </div>
+
+            {formData.providerType === "company" && (
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Nome da Empresa</Label>
+                <Input
+                  id="companyName"
+                  value={formData.companyName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                  placeholder="Nome Legal da Empresa"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="vatNumber">NIF / VAT *</Label>
+              <Input
+                id="vatNumber"
+                value={formData.vatNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, vatNumber: e.target.value }))}
+                placeholder="123456789"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="bio">Biografia Profissional *</Label>
               <Textarea
                 id="bio"
@@ -824,7 +877,7 @@ export function EnhancedProviderOnboarding() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button onClick={handleNext} disabled={!formData.bio || !formData.phone || !formData.postalCode || !formData.hourlyRate}>
+            <Button onClick={handleNext} disabled={!formData.bio || !formData.phone || !formData.postalCode || !formData.hourlyRate || !formData.vatNumber || (formData.providerType === "company" && !formData.companyName)}>
               Próximo
             </Button>
           </CardFooter>
@@ -1262,7 +1315,7 @@ export function EnhancedProviderOnboarding() {
 
                 {/* Company Reg Document Card */}
                 {formData.providerType === 'company' && (
-                  <Card className={documents.company.length === 0 ? "border-dashed col-span-1 md:col-span-2" : "border-primary col-span-1 md:col-span-2"}>
+                  <Card className={(documents.company.length === 0 && !formData.commercialRegistryCode) ? "border-dashed col-span-1 md:col-span-2" : "border-primary col-span-1 md:col-span-2"}>
                     <CardHeader>
                       <CardTitle className="text-base flex items-center">
                         <Briefcase className="mr-2 h-4 w-4" />
@@ -1270,38 +1323,61 @@ export function EnhancedProviderOnboarding() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {documents.company.map((file, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded">
-                            <div className="flex items-center overflow-hidden">
-                              <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
-                              <span className="text-sm truncate">{file.name}</span>
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={() => removeDocument("company", idx)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
+                      <Tabs defaultValue={formData.commercialRegistryCode ? "code" : "upload"} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-4">
+                          <TabsTrigger value="upload">Carregar Documento</TabsTrigger>
+                          <TabsTrigger value="code">Código de Acesso</TabsTrigger>
+                        </TabsList>
 
-                        <div className="flex items-center justify-center w-full">
-                          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                              <Upload className="w-8 h-8 mb-4 text-gray-500" />
-                              <p className="text-sm text-gray-500">
-                                <span className="font-semibold">Carregar Certidão</span>
-                              </p>
-                              <p className="text-xs text-gray-500">PDF ou Imagem</p>
+                        <TabsContent value="upload" className="space-y-4">
+                          {documents.company.map((file, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded">
+                              <div className="flex items-center overflow-hidden">
+                                <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+                                <span className="text-sm truncate">{file.name}</span>
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => removeDocument("company", idx)}>
+                                <X className="h-4 w-4" />
+                              </Button>
                             </div>
-                            <input
-                              type="file"
-                              accept="image/*,.pdf"
-                              multiple
-                              className="hidden"
-                              onChange={(e) => handleFileChange(e, "company")}
-                            />
-                          </label>
-                        </div>
-                      </div>
+                          ))}
+                          <div className="flex items-center justify-center w-full">
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                                <p className="text-sm text-gray-500">
+                                  <span className="font-semibold">Carregar Certidão</span>
+                                </p>
+                                <p className="text-xs text-gray-500">PDF ou Imagem</p>
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                multiple
+                                className="hidden"
+                                onChange={(e) => handleFileChange(e, "company")}
+                              />
+                            </label>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="code" className="space-y-4">
+                          <div className="p-4 bg-muted/30 rounded-lg border">
+                            <div className="space-y-3">
+                              <Label htmlFor="reg-code">Código de Acesso à Certidão Permanente</Label>
+                              <Input
+                                id="reg-code"
+                                placeholder="XXXX-XXXX-XXXX"
+                                value={formData.commercialRegistryCode}
+                                onChange={(e) => setFormData({ ...formData, commercialRegistryCode: e.target.value })}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Insira o código de acesso de 12 caracteres (ex: 1234-5678-9012) para consultarmos a certidão digitalmente.
+                              </p>
+                            </div>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                     </CardContent>
                   </Card>
                 )}
@@ -1350,7 +1426,7 @@ export function EnhancedProviderOnboarding() {
               <Button onClick={handleNext} disabled={
                 documents.id.length === 0 ||
                 documents.address.length === 0 ||
-                (formData.providerType === 'company' && documents.company.length === 0)
+                (formData.providerType === 'company' && documents.company.length === 0 && (!formData.commercialRegistryCode || formData.commercialRegistryCode.length < 5))
               }>
                 Próximo
               </Button>
@@ -1376,6 +1452,15 @@ export function EnhancedProviderOnboarding() {
                 <div>
                   <h4 className="font-medium mb-2">Informações Básicas</h4>
                   <div className="bg-gray-50 p-3 rounded-lg space-y-1">
+                    <p>
+                      <strong>Tipo:</strong> {formData.providerType === "company" ? "Empresa" : "Individual"}
+                    </p>
+                    {formData.providerType === "company" && (
+                      <p><strong>Empresa:</strong> {formData.companyName}</p>
+                    )}
+                    <p>
+                      <strong>NIF:</strong> {formData.vatNumber}
+                    </p>
                     <p>
                       <strong>Biografia:</strong> {formData.bio.substring(0, 100)}...
                     </p>
@@ -1417,15 +1502,25 @@ export function EnhancedProviderOnboarding() {
 
                 <div>
                   <h4 className="font-medium mb-2">Documentos Carregados</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div className="bg-gray-50 p-2 rounded">
-                      <p className="text-xs font-semibold text-gray-500 uppercase">Identificação</p>
+                      <p className="text-xs font-semibold text-gray-500 uppercase">ID</p>
                       <p className="text-sm">{documents.id.length} ficheiro(s)</p>
                     </div>
                     <div className="bg-gray-50 p-2 rounded">
                       <p className="text-xs font-semibold text-gray-500 uppercase">Morada</p>
                       <p className="text-sm">{documents.address.length} ficheiro(s)</p>
                     </div>
+                    {formData.providerType === "company" && (
+                      <div className="bg-gray-50 p-2 rounded">
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Empresa</p>
+                        {formData.commercialRegistryCode ? (
+                          <p className="text-xs font-mono break-all">{formData.commercialRegistryCode}</p>
+                        ) : (
+                          <p className="text-sm">{documents.company.length} ficheiro(s)</p>
+                        )}
+                      </div>
+                    )}
                     <div className="bg-gray-50 p-2 rounded">
                       <p className="text-xs font-semibold text-gray-500 uppercase">Outros</p>
                       <p className="text-sm">{documents.others.length} ficheiro(s)</p>
@@ -1433,7 +1528,7 @@ export function EnhancedProviderOnboarding() {
                   </div>
                   <div className="mt-2 text-xs text-gray-500">
                     {documents.id.map(f => f.name).join(", ")}
-                    {documents.address.length > 0 && ", " + documents.address.map(f => f.name).join(", ")}
+                    {documents.company.map(f => f.name).join(", ")}
                   </div>
                 </div>
 

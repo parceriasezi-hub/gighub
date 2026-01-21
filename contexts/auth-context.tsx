@@ -16,6 +16,7 @@ export type Profile = DBProfile & {
   vat_number?: string | null
   provider_full_name?: string | null
   company_name?: string | null
+  commercial_registry_code?: string | null
   provider_service_radius?: number | null
   last_lat?: number | null
   last_lng?: number | null
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       vat_number: null,
       provider_full_name: null,
       company_name: null,
+      commercial_registry_code: null,
       provider_service_radius: 20,
       last_lat: null,
       last_lng: null,
