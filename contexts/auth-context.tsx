@@ -24,6 +24,7 @@ export type Profile = DBProfile & {
   provider_rejection_reason?: string | null
   permissions?: string[] | null
   provider_verified_at?: string | null
+  provider_documents?: any | null
 }
 
 interface AuthContextType {
