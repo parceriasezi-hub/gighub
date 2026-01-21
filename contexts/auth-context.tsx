@@ -9,6 +9,8 @@ import { logClientActivity } from "@/app/actions/log"
 type DBProfile = Database["public"]["Tables"]["profiles"]["Row"]
 
 export type Profile = DBProfile & {
+  created_at?: string | null
+  updated_at?: string | null
   provider_location?: string | null
   postal_code?: string | null
   vat_number?: string | null
@@ -20,6 +22,8 @@ export type Profile = DBProfile & {
   provider_type?: string | null
   provider_avatar_url?: string | null
   provider_rejection_reason?: string | null
+  permissions?: string[] | null
+  provider_verified_at?: string | null
 }
 
 interface AuthContextType {
@@ -148,8 +152,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         updated_at: new Date().toISOString(),
       }
 
-      const { data: createdProfile, error: createError } = await supabase
-        .from("profiles")
+      const { data: createdProfile, error: createError } = await (supabase
+        .from("profiles") as any)
         .insert([newProfile])
         .select()
         .single() // Now strict single is okay as we just inserted one
@@ -197,8 +201,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Actually Supabase JS normally ignores unknown fields if configured, or throws.
       // Assuming 'profiles' table has been migrated to include these columns.
       // If not, this might throw. But we rely on migrations being applied.
-      const { error } = await supabase
-        .from("profiles")
+      const { error } = await (supabase
+        .from("profiles") as any)
         .update(updates)
         .eq("id", user.id)
 
