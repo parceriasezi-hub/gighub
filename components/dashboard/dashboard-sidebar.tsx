@@ -28,6 +28,7 @@ import { useEmergencyHeartbeat } from "@/hooks/use-emergency-heartbeat"
 import { useTranslations } from "next-intl"
 
 import { DashboardNav } from "./dashboard-nav"
+import { OrgSwitcher } from "./org-switcher"
 
 export function DashboardSidebar() {
     const t = useTranslations("Sidebar")
@@ -108,9 +109,12 @@ export function DashboardSidebar() {
                 )}
             >
                 <div className="flex flex-col h-full">
+
                     {/* Logo & Status */}
                     <div className="p-6 border-b space-y-4">
                         <Logo />
+
+                        <OrgSwitcher />
 
                         {/* View Toggle for Providers */}
                         {isProvider ? (

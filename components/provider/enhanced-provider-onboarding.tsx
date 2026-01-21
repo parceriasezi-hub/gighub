@@ -719,25 +719,28 @@ export function EnhancedProviderOnboarding() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Nome da Empresa</Label>
-              <Input
-                id="companyName"
-                value={formData.companyName}
-                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                placeholder="Nome Legal da Empresa"
-              />
-            </div>
+            {formData.providerType === "company" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Nome da Empresa</Label>
+                  <Input
+                    id="companyName"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="Nome Legal da Empresa"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="companyResponsible">Nome do Responsável (Gerente)</Label>
-              <Input
-                id="companyResponsible"
-                value={formData.companyResponsible}
-                onChange={(e) => setFormData(prev => ({ ...prev, companyResponsible: e.target.value }))}
-                placeholder="Nome Completo do Responsável"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyResponsible">Nome do Responsável (Gerente)</Label>
+                  <Input
+                    id="companyResponsible"
+                    value={formData.companyResponsible}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyResponsible: e.target.value }))}
+                    placeholder="Nome Completo do Responsável"
+                  />
+                </div>
+              </>
             )}
 
             <div className="space-y-2">

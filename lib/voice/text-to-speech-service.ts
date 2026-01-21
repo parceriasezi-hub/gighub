@@ -144,7 +144,7 @@ export class TextToSpeechService {
       utterance.onend = () => resolve()
       utterance.onerror = (event) => reject(new Error(`Browser TTS Error: ${event.error}`))
 
-      this.synthesis.speak(utterance)
+      this.synthesis!.speak(utterance)
     })
   }
 

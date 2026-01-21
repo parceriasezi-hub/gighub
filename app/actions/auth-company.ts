@@ -14,8 +14,7 @@ interface CompanyRegistrationData {
 }
 
 export async function registerCompany(data: CompanyRegistrationData) {
-    const cookieStore = cookies()
-    const supabase = createClient(cookieStore)
+    const supabase = await createClient()
 
     // 1. Create Auth User
     const { data: authData, error: authError } = await supabase.auth.signUp({

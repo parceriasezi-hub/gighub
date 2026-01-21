@@ -37,11 +37,23 @@ export type Profile = DBProfile & {
   portfolio_url?: string | null
   notification_preferences?: any
   privacy_settings?: any
+  availability?: any
+}
+
+// Organization Types
+export interface Organization {
+  id: string
+  legal_name: string
+  vat_number: string
+  logo_url?: string | null
+  role?: 'owner' | 'admin' | 'member' // The role of the current user in this org
 }
 
 interface AuthContextType {
   user: User | null
   profile: Profile | null
+  organizations: Organization[]
+  currentOrganization: Organization | null
   loading: boolean
   error: string | null
   isAuthenticated: boolean
@@ -51,6 +63,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: string | null }>
   hasPermission: (permission: string) => boolean
+  switchOrganization: (orgId: string | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -70,13 +83,15 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
 
   const isAuthenticated = !!user && !loading
 
-  // Mock profile fallback for development
+  // ... (getMockProfile remains same)
   const getMockProfile = (user: User): Profile => {
     // In production, we don't use hardcoded admins
     // This is just a fallback for when DB fetch fails during initial dev setup
@@ -130,6 +145,63 @@ export function AuthProvider({ children }: AuthProviderProps) {
       provider_type: "individual",
       provider_avatar_url: null,
       provider_rejection_reason: null
+    }
+  }
+
+  const fetchOrganizations = async (userId: string) => {
+    try {
+      // Fetch orgs where user is a member
+      const { data: members, error } = await supabase
+        .from('organization_members')
+        .select(`
+          role,
+          organization:organizations (
+            id,
+            legal_name,
+            vat_number,
+            logo_url
+          )
+        `)
+        .eq('user_id', userId)
+
+      if (error) {
+        console.error("Error fetching organizations:", error)
+        return
+      }
+
+      if (members) {
+        const orgs = members.map((m: any) => ({
+          id: m.organization.id,
+          legal_name: m.organization.legal_name,
+          vat_number: m.organization.vat_number,
+          logo_url: m.organization.logo_url,
+          role: m.role
+        }))
+        setOrganizations(orgs)
+
+        // Check for persisted active org in localStorage
+        const savedOrgId = localStorage.getItem('activeOrganizationId')
+        if (savedOrgId) {
+          const matchedOrg = orgs.find(o => o.id === savedOrgId)
+          if (matchedOrg) setCurrentOrganization(matchedOrg)
+        }
+      }
+    } catch (err) {
+      console.error("Exception fetching organizations:", err)
+    }
+  }
+
+  const switchOrganization = (orgId: string | null) => {
+    if (!orgId) {
+      setCurrentOrganization(null)
+      localStorage.removeItem('activeOrganizationId')
+      return
+    }
+
+    const org = organizations.find(o => o.id === orgId)
+    if (org) {
+      setCurrentOrganization(org)
+      localStorage.setItem('activeOrganizationId', orgId)
     }
   }
 
@@ -191,6 +263,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       const dbProfile = await fetchProfile(user.id)
+      await fetchOrganizations(user.id) // Also refresh orgs
 
       if (dbProfile) {
         setProfile(dbProfile)
@@ -207,6 +280,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  // ... (updateProfile, signIn, signUp, signOut implementation remains similar)
   const updateProfile = async (updates: Partial<Profile>): Promise<{ error: string | null }> => {
     if (!user) return { error: "No user logged in" }
 
@@ -363,7 +437,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log("✅ Sign out successful")
         setUser(null)
         setProfile(null)
+        setOrganizations([])
+        setCurrentOrganization(null)
         setError(null)
+        localStorage.removeItem('activeOrganizationId')
       }
     } catch (err) {
       console.error("❌ Sign out exception:", err)
@@ -412,6 +489,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             .catch(() => {
               // Keep mock profile on error
             })
+
+          // Fetch organizations
+          fetchOrganizations(session.user.id)
+
         } else {
           console.log("ℹ️ No initial session found")
         }
@@ -456,9 +537,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
           .catch(() => {
             // Keep mock profile on error
           })
+
+        fetchOrganizations(session.user.id)
+
       } else if (event === "SIGNED_OUT") {
         setUser(null)
         setProfile(null)
+        setOrganizations([])
+        setCurrentOrganization(null)
         setError(null)
       }
 
@@ -473,7 +559,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [initialized])
 
-  // Realtime profile listener
+  // Realtime profile listener (Remains same)
   useEffect(() => {
     if (!user?.id) return
 
@@ -504,6 +590,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     profile,
+    organizations,
+    currentOrganization,
     loading,
     error,
     isAuthenticated,
@@ -512,6 +600,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOut,
     refreshProfile,
     updateProfile,
+    switchOrganization,
     hasPermission: (permission: string) => {
       if (!profile) return false
       // Super admins have all permissions
