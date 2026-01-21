@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Building2, Users, CreditCard, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 
+export const runtime = "edge"
+
 export default function OrganizationDashboard() {
     const { orgId } = useParams()
     const { organizations, switchOrganization, currentOrganization } = useAuth()
