@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,12 +13,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { signUpUser } from "@/app/actions/auth"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 
 export const dynamic = "force-dynamic"
 export const runtime = "edge"
 
 export default function RegisterPage() {
-  const [activeTab, setActiveTab] = useState("individual")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get("tab") === "company" ? "company" : "individual"
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   // Individual State
   const [email, setEmail] = useState("")
@@ -37,7 +41,14 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
+
+  // Update URL when tab changes to persist state on reload
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    const url = new URL(window.location.href)
+    url.searchParams.set("tab", tab)
+    window.history.pushState({}, "", url)
+  }
 
   const handleIndividualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,6 +85,13 @@ export default function RegisterPage() {
     setError("")
 
     try {
+      // Basic validation
+      if (!companyEmail || !legalName) {
+        setError("Por favor preencha os campos obrigatórios.")
+        setLoading(false)
+        return
+      }
+
       // Import dynamically to avoid server-action issues in client component if strict
       const { registerCompany } = await import("@/app/actions/auth-company")
 
@@ -89,16 +107,17 @@ export default function RegisterPage() {
 
       if (result.error) {
         setError(result.error)
+        setLoading(false)
       } else {
         setSuccess(true)
+        // Redirect to verification instead of resetting form
         setTimeout(() => {
           router.push("/verify-email")
-        }, 2000)
+        }, 1500)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      setError("An unexpected error occurred during company registration")
-    } finally {
+      setError(err.message || "An unexpected error occurred during company registration")
       setLoading(false)
     }
   }
@@ -111,7 +130,7 @@ export default function RegisterPage() {
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Account created successfully! Redirecting...
+                Conta criada com sucesso! A redirecionar...
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -124,20 +143,22 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
-          <CardDescription className="text-center">Join the GigHub platform</CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">Criar Conta</CardTitle>
+          <CardDescription className="text-center">Junte-se à plataforma GigHub</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex border-b mb-6">
             <button
+              type="button"
               className={`flex-1 pb-2 text-sm font-medium transition-colors ${activeTab === "individual" ? "border-b-2 border-primary text-primary" : "text-gray-500 hover:text-gray-700"}`}
-              onClick={() => setActiveTab("individual")}
+              onClick={() => handleTabChange("individual")}
             >
               Particular
             </button>
             <button
+              type="button"
               className={`flex-1 pb-2 text-sm font-medium transition-colors ${activeTab === "company" ? "border-b-2 border-primary text-primary" : "text-gray-500 hover:text-gray-700"}`}
-              onClick={() => setActiveTab("company")}
+              onClick={() => handleTabChange("company")}
             >
               Empresa
             </button>
@@ -229,10 +250,11 @@ export default function RegisterPage() {
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="address">Morada da Sede</Label>
-                  <Input
+                  <AddressAutocomplete
                     id="address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
+                    onAddressSelect={(addr) => setAddress(addr)}
                     required
                     placeholder="Av. da Liberdade, 100, Lisboa"
                   />

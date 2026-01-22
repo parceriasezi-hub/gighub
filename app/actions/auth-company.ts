@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 
 interface CompanyRegistrationData {
@@ -14,9 +15,30 @@ interface CompanyRegistrationData {
 }
 
 export async function registerCompany(data: CompanyRegistrationData) {
+    // 1. Create Auth User (Standard Client)
+    // We use the standard server client to create the user.
     const supabase = await createClient()
 
-    // 1. Create Auth User
+    // Check if Service Role Key is available
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+        throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY")
+    }
+
+    // Create Admin Client for database operations (bypassing RLS)
+    // This is required because the new user might not be verified yet (no session),
+    // but we need to create the Organization and Member linkage immediately.
+    const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        }
+    )
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -33,24 +55,8 @@ export async function registerCompany(data: CompanyRegistrationData) {
 
     const userId = authData.user.id
 
-    // 2. Create Organization
-    // Note: RLS allows authenticated users to insert.
-    // Since we just signed up, we might need to rely on the session being established OR use a service key for this transaction.
-    // However, signUp usually returns a session.
-
-    // STRATEGY: It's safer to use a Service Role client here to ensure atomicity and bypass RLS for the initial setup,
-    // preventing a state where User exists but Org fails due to permissions.
-    // BUT... we don't expose Service Role to client components.
-    // We'll proceed with standard client first. If RLS blocks "Organization Creation" because the user isn't fully "logged in" yet (email verification?),
-    // we might need to adjust.
-
-    // Assumption: 'signUp' returns a session if email confirmation is disabled or auto-confirmed.
-    // If email confirmation is REQUIRED, the user won't have a session yet.
-    // In that case, we MUST use Service Role to create the Org and link it to the (pending) User ID.
-
-    // For this implementation, we will assume we can write to 'organizations' table.
-
-    const { data: orgData, error: orgError } = await supabase
+    // 2. Create Organization (Using Admin Client)
+    const { data: orgData, error: orgError } = await supabaseAdmin
         .from("organizations")
         .insert({
             legal_name: data.legalName,
@@ -62,16 +68,14 @@ export async function registerCompany(data: CompanyRegistrationData) {
         .single()
 
     if (orgError) {
-        // Ideally rollback user creation here, but Supabase Auth doesn't support easy rollback.
-        // For MVP, return error.
+        // Since we can't easily undo the auth creation without admin rights (and we want to avoid deleting users if possible),
+        // we log this critical error. user exists but org failed.
+        console.error("CRITICAL: Failed to create organization for new user", userId, orgError)
         return { error: `Failed to create organization: ${orgError.message}` }
     }
 
-    // 3. Create Organization Member (Owner)
-    // The 'organizations' insert RLS policy allows authenticated users.
-    // The 'organization_members' insert needs to be allowed.
-
-    const { error: memberError } = await supabase
+    // 3. Create Organization Member (Owner) (Using Admin Client)
+    const { error: memberError } = await supabaseAdmin
         .from("organization_members")
         .insert({
             organization_id: orgData.id,
@@ -80,6 +84,7 @@ export async function registerCompany(data: CompanyRegistrationData) {
         })
 
     if (memberError) {
+        console.error("CRITICAL: Failed to link user to organization", userId, orgData.id, memberError)
         return { error: `Failed to add member: ${memberError.message}` }
     }
 
