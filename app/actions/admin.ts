@@ -168,18 +168,28 @@ export async function deleteAdminUser(userId: string, executorId?: string, userE
             return { success: false, error: authError.message }
         }
 
-        // 2. Skip Manual Profile Cleanup (Trust Cascade)
-        // 3. Skip Logging (Potential Timeout Cause)
-        /*
+        // 2. Skip Manual Profile Cleanup (Trust Cascade) -> Keeping this skipped as migration handles it.
+
+        // 3. Log activity (Non-blocking / Fire-and-forget style for Edge)
+        // We do NOT await this to prevent holding up the response if logging is slow.
         if (executorId) {
-            // await logActivity(...) 
+            logActivity(
+                executorId,
+                "admin",
+                "DELETE_USER_ADMIN",
+                { targetUserId: userId, targetUserEmail: userEmailForLog }
+            ).catch(err => console.error("Background log failed:", err))
         }
-        */
 
-        // 4. Skip Revalidate (Potential Timeout Cause)
-        // revalidatePath("/admin/users")
+        // 4. Revalidate (Non-blocking attempt)
+        try {
+            // revalidatePath causes the server cache to purge. It's usually fast.
+            // If it throws, we catch it.
+            revalidatePath("/admin/users")
+        } catch (revError) {
+            console.error("[DELETE_USER] ⚠️ Revalidate warning:", revError)
+        }
 
-        console.log(`[DELETE_USER] ✅ Success (Minimal Mode)`)
         return { success: true }
 
     } catch (err: any) {

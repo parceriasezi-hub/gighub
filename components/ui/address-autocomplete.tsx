@@ -32,7 +32,11 @@ export function AddressAutocomplete({
             })
 
             autocompleteRef.current.addListener("place_changed", () => {
+                if (!autocompleteRef.current) return
+
                 const place = autocompleteRef.current.getPlace()
+                if (!place) return // Safety check
+
                 const address = place.formatted_address
 
                 if (address && onAddressSelect) {
