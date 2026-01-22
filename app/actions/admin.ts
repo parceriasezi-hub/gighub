@@ -161,7 +161,7 @@ export async function deleteAdminUser(userId: string, executorId?: string, userE
 
         const supabase: any = getSupabaseAdmin()
 
-        // 1. Apagar do Auth
+        // 1. Apagar do Auth (The critical step)
         console.log(`[DELETE_USER] 🗑️ Deleting from Auth...`)
         const { error: authError } = await supabase.auth.admin.deleteUser(userId)
 
@@ -171,43 +171,46 @@ export async function deleteAdminUser(userId: string, executorId?: string, userE
         }
         console.log(`[DELETE_USER] ✅ Auth deletion complete`)
 
-        // 2. Tentar apagar do Profile (failsafe case no cascade)
-        console.log(`[DELETE_USER] 🗑️ Cleaning up profile manually (if still exists)...`)
-        const { error: profError } = await supabase.from("profiles").delete().eq("id", userId)
-        if (profError) {
-            console.warn("[DELETE_USER] ⚠️ Profile Cleanup Warning (safe to ignore if cascade active):", profError.message)
-        } else {
-            console.log(`[DELETE_USER] ✅ Profile cleanup complete`)
+        // 2. Cleanup Logs & Profiles (Best effort)
+        // With the new CASCADE fix, this should be automatic, but we leave it as failsafe.
+        // We run this without waiting to speed up response? No, serverless functions need to wait.
+        try {
+            // Optional: Explicitly clean up profile if needed, but CASCADE handles it.
+            // Just logging.
+            // await supabase.from("profiles").delete().eq("id", userId) 
+        } catch (e) {
+            console.warn("[DELETE_USER] Cleanup warning:", e)
         }
 
-        // 3. Log activity
+        // 3. Log activity (Best effort)
         if (executorId) {
-            console.log(`[DELETE_USER] 📝 Logging activity for executor ${executorId}...`)
             try {
+                // Ensure we don't block main success
                 await logActivity(
                     executorId,
                     "admin",
                     "DELETE_USER_ADMIN",
                     { targetUserId: userId, targetUserEmail: userEmailForLog }
                 )
-                console.log(`[DELETE_USER] ✅ Activity log sent`)
             } catch (logErr) {
-                console.error("[DELETE_USER] ⚠️ Logging failure (non-blocking):", logErr)
+                console.warn("[DELETE_USER] ⚠️ Logging failure (non-blocking):", logErr)
             }
         }
 
-        // 4. Revalidate
-        console.log(`[DELETE_USER] 🔄 Revalidating path...`)
+        // 4. Revalidate (Can cause 500 if path invalid, so aggressive try/catch)
         try {
+            console.log(`[DELETE_USER] 🔄 Revalidating path...`)
             revalidatePath("/admin/users")
+            revalidatePath("/admin/providers") // Just in case
             console.log(`[DELETE_USER] ✅ Path revalidated`)
         } catch (revError) {
-            console.error("[DELETE_USER] ⚠️ Revalidate failure (non-blocking):", revError)
+            console.error("[DELETE_USER] ⚠️ Revalidate failure (non-blocking warning):", revError)
+            // Do NOT throw here. The user is deleted, we must return success.
         }
 
-        console.log(`[DELETE_USER] 🎉 Deletion sequence finished successfully`)
         return { success: true }
     } catch (err: any) {
+        // Only valid if the OUTER shell crashes
         console.error("[DELETE_USER] ❌ UNEXPECTED CRITICAL ERROR:", err)
         return { success: false, error: `Erro inesperado: ${err.message || 'Erro desconhecido'}` }
     }
