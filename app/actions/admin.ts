@@ -152,67 +152,39 @@ export async function updateAdminUser(userId: string, data: {
 
 export async function deleteAdminUser(userId: string, executorId?: string, userEmailForLog?: string): Promise<{ success: boolean; error?: string }> {
     try {
-        console.log(`[DELETE_USER] 🚀 Starting deletion for ${userId} (${userEmailForLog})`)
+        console.log(`[DELETE_USER] 🚀 Starting deletion for ${userId}`)
 
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.error("[DELETE_USER] ❌ Missing Service Role Key");
-            return { success: false, error: "Erro de configuração do servidor (Service Key missing)." };
+            return { success: false, error: "Service Key missing." };
         }
 
         const supabase: any = getSupabaseAdmin()
 
-        // 1. Apagar do Auth (The critical step)
-        console.log(`[DELETE_USER] 🗑️ Deleting from Auth...`)
+        // 1. Apagar do Auth
         const { error: authError } = await supabase.auth.admin.deleteUser(userId)
 
         if (authError) {
             console.error("[DELETE_USER] ❌ Auth Delete Error:", authError)
-            return { success: false, error: `Erro no sistema de autenticação: ${authError.message}` }
-        }
-        console.log(`[DELETE_USER] ✅ Auth deletion complete`)
-
-        // 2. Cleanup Logs & Profiles (Best effort)
-        // With the new CASCADE fix, this should be automatic, but we leave it as failsafe.
-        // We run this without waiting to speed up response? No, serverless functions need to wait.
-        try {
-            // Optional: Explicitly clean up profile if needed, but CASCADE handles it.
-            // Just logging.
-            // await supabase.from("profiles").delete().eq("id", userId) 
-        } catch (e) {
-            console.warn("[DELETE_USER] Cleanup warning:", e)
+            return { success: false, error: authError.message }
         }
 
-        // 3. Log activity (Best effort)
+        // 2. Skip Manual Profile Cleanup (Trust Cascade)
+        // 3. Skip Logging (Potential Timeout Cause)
+        /*
         if (executorId) {
-            try {
-                // Ensure we don't block main success
-                await logActivity(
-                    executorId,
-                    "admin",
-                    "DELETE_USER_ADMIN",
-                    { targetUserId: userId, targetUserEmail: userEmailForLog }
-                )
-            } catch (logErr) {
-                console.warn("[DELETE_USER] ⚠️ Logging failure (non-blocking):", logErr)
-            }
+            // await logActivity(...) 
         }
+        */
 
-        // 4. Revalidate (Can cause 500 if path invalid, so aggressive try/catch)
-        try {
-            console.log(`[DELETE_USER] 🔄 Revalidating path...`)
-            revalidatePath("/admin/users")
-            revalidatePath("/admin/providers") // Just in case
-            console.log(`[DELETE_USER] ✅ Path revalidated`)
-        } catch (revError) {
-            console.error("[DELETE_USER] ⚠️ Revalidate failure (non-blocking warning):", revError)
-            // Do NOT throw here. The user is deleted, we must return success.
-        }
+        // 4. Skip Revalidate (Potential Timeout Cause)
+        // revalidatePath("/admin/users")
 
+        console.log(`[DELETE_USER] ✅ Success (Minimal Mode)`)
         return { success: true }
+
     } catch (err: any) {
-        // Only valid if the OUTER shell crashes
-        console.error("[DELETE_USER] ❌ UNEXPECTED CRITICAL ERROR:", err)
-        return { success: false, error: `Erro inesperado: ${err.message || 'Erro desconhecido'}` }
+        console.error("[DELETE_USER] ❌ CRITICAL:", err)
+        return { success: false, error: err.message }
     }
 }
 
