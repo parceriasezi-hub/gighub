@@ -1,7 +1,7 @@
 export const runtime = 'edge';
 
 import { createClient } from "@/lib/supabase/server";
-import { updateOrganizationDetails, orgSettingsState, deleteOrganizationAction } from "@/app/actions/org-settings";
+import { updateOrganizationDetails, deleteOrganizationAction } from "@/app/actions/org-settings";
 import { Button } from "@/components/ui/button";
 import {
     Card,

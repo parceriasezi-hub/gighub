@@ -31,8 +31,9 @@ export default async function JoinTeamPage({ searchParams }: { searchParams: { t
     const { data: { user } } = await supabase.auth.getUser();
 
     // Fetch Invite Details Security (using RPC)
-    const { data: invite, error } = await supabase
-        .rpc('get_invite_details', { invite_token: token })
+    // Fetch Invite Details Security (using RPC)
+    const { data: invite, error } = await (supabase
+        .rpc('get_invite_details', { invite_token: token } as any) as any)
         .single();
 
     const isValid = !error && invite;
