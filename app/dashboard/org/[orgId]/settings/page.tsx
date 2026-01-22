@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { canDeleteOrganization, canManageTeam, getCurrentOrgRole } from "@/lib/b2b/permissions";
 import { redirect } from "next/navigation";
-import { OrgSettingsForm } from "./org-settings-form";
+import { OrgSettingsForm } from "./settings-form";
 
 export default async function SettingsPage({ params }: { params: { orgId: string } }) {
     const supabase = await createClient();
