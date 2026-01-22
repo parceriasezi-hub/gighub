@@ -252,8 +252,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("✅ Created missing profile:", createdProfile)
       return createdProfile as Profile
 
-    } catch (err) {
-      console.warn("⚠️ Profile fetch exception (using mock):", err)
+    } catch (err: any) {
+      console.warn("⚠️ Profile fetch exception:", err)
+
+      // Critical Fix: If we fail to create a profile because of FK violation,
+      // it means the auth user exists in session but NOT in database (deleted via admin).
+      // We must force logout to clear this stale state.
+      if (err.message && (err.message.includes("foreign key constraint") || err.message.includes("violates foreign key"))) {
+        console.error("🚨 Stale Session Detected (User deleted from DB). Forcing cleanup...")
+        await supabase.auth.signOut()
+        setUser(null)
+        setProfile(null)
+        localStorage.removeItem('activeOrganizationId')
+        window.location.href = '/login?error=session_expired' // Force reload to login
+        return null
+      }
+
       return null
     }
   }
